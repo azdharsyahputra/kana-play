@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { KANA_ROWS } from '../data/kanaData';
 import type { KanaItem, KanaScript } from '../types';
 import { playKeyClickSound, speakJapanese } from '../utils/audio';
-import { Delete, CornerDownLeft, Volume2 } from 'lucide-react';
+import { Delete, CornerDownLeft, Volume2, Shuffle, ArrowDownUp } from 'lucide-react';
 
 interface KanaKeyboardProps {
   script: KanaScript;
@@ -16,6 +16,16 @@ interface KanaKeyboardProps {
   focusCandidates?: KanaItem[];
 }
 
+// Utility to shuffle an array (Fisher-Yates)
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 export const KanaKeyboard: React.FC<KanaKeyboardProps> = ({
   script,
   onSelectKana,
@@ -25,8 +35,10 @@ export const KanaKeyboard: React.FC<KanaKeyboardProps> = ({
   onSubmit,
   focusCandidates,
 }) => {
-  // Default to 'main'
+  // Default to 'main' or 'tier' if candidates present
   const [activeTab, setActiveTab] = useState<'main' | 'dakuten' | 'yoon' | 'tier'>('main');
+  const [isShuffled, setIsShuffled] = useState<boolean>(true); // Default to randomized order for challenging drill
+  const [shuffleSeed, setShuffleSeed] = useState<number>(0);
 
   const activeScript: 'hiragana' | 'katakana' = script === 'katakana' ? 'katakana' : 'hiragana';
 
@@ -36,9 +48,42 @@ export const KanaKeyboard: React.FC<KanaKeyboardProps> = ({
     onSelectKana(char);
   };
 
+  const toggleShuffle = () => {
+    playKeyClickSound();
+    setIsShuffled(prev => !prev);
+    setShuffleSeed(s => s + 1);
+  };
+
+  const reRollShuffle = () => {
+    playKeyClickSound();
+    setShuffleSeed(s => s + 1);
+  };
+
   const mainRows = KANA_ROWS.filter(r => r.groupType === 'main');
   const dakuRows = KANA_ROWS.filter(r => r.groupType === 'dakuten' || r.groupType === 'handakuten');
   const yoonRows = KANA_ROWS.filter(r => r.groupType === 'youon');
+
+  // Compute displayed candidates based on shuffle state
+  const displayedFocusCandidates = useMemo(() => {
+    if (!focusCandidates) return [];
+    return isShuffled ? shuffleArray(focusCandidates) : focusCandidates;
+  }, [focusCandidates, isShuffled, shuffleSeed]);
+
+  // Compute all main items for grid
+  const allMainItems = useMemo(() => {
+    const flat = mainRows.flatMap(r => r.items);
+    return isShuffled ? shuffleArray(flat) : null;
+  }, [mainRows, isShuffled, shuffleSeed]);
+
+  const allDakuItems = useMemo(() => {
+    const flat = dakuRows.flatMap(r => r.items);
+    return isShuffled ? shuffleArray(flat) : null;
+  }, [dakuRows, isShuffled, shuffleSeed]);
+
+  const allYoonItems = useMemo(() => {
+    const flat = yoonRows.flatMap(r => r.items);
+    return isShuffled ? shuffleArray(flat) : null;
+  }, [yoonRows, isShuffled, shuffleSeed]);
 
   return (
     <div className="w-full bg-[#f6eedf] border-[3.5px] border-[#0b1a3d] rounded-2xl p-3 sm:p-4 shadow-[5px_5px_0px_#0b1a3d]">
@@ -48,9 +93,31 @@ export const KanaKeyboard: React.FC<KanaKeyboardProps> = ({
           <span className="text-xs font-bungee tracking-wider bg-[#0c389c] text-white px-2.5 py-1 rounded-md border border-[#071e54]">
             ⌨️ {activeScript === 'hiragana' ? 'HIRAGANA KEYPAD' : 'KATAKANA KEYPAD'}
           </span>
-          <span className="text-xs font-bold text-[#0b1a3d]/70 hidden sm:inline">
-            (Pilih huruf Kana yang sesuai)
-          </span>
+
+          {/* Shuffle Toggle Button */}
+          <button
+            onClick={toggleShuffle}
+            title={isShuffled ? 'Urutan Diacak (Klik untuk Urutkan)' : 'Urutan Standar (Klik untuk Acak)'}
+            className={`px-2 py-1 text-[11px] font-heading font-black rounded-lg border-2 flex items-center gap-1 transition-all ${
+              isShuffled
+                ? 'bg-[#d9261c] text-white border-[#73130d] shadow-[1px_1px_0px_#0b1a3d]'
+                : 'bg-white text-[#0b1a3d] border-[#0b1a3d]/40'
+            }`}
+          >
+            <Shuffle className="w-3.5 h-3.5" />
+            <span>{isShuffled ? 'ACAK: ON' : 'ACAK: OFF'}</span>
+          </button>
+
+          {isShuffled && (
+            <button
+              onClick={reRollShuffle}
+              title="Kocok ulang posisi tombol"
+              className="px-2 py-1 text-[11px] font-heading font-bold bg-white hover:bg-[#ffd200] text-[#0b1a3d] rounded-lg border border-[#0b1a3d]/40 flex items-center gap-1"
+            >
+              <ArrowDownUp className="w-3 h-3" />
+              <span className="hidden sm:inline">Kocok</span>
+            </button>
+          )}
         </div>
 
         {/* Tab switchers */}
@@ -158,14 +225,15 @@ export const KanaKeyboard: React.FC<KanaKeyboardProps> = ({
       {/* KEYPAD TILES: CLEAN TEXTBOOK FONT WITH NO ROMAJI / CONSONANT HINTS */}
       <div className="max-h-[290px] overflow-y-auto pr-1 space-y-2">
         
-        {/* TAB: FOCUS TIER (Active Level) - NO CONSONANT/ROMAJI HINTS */}
+        {/* TAB: FOCUS TIER (Active Level) */}
         {activeTab === 'tier' && focusCandidates && (
           <div className="bg-white border-2 border-[#0b1a3d] rounded-xl p-3 shadow-[3px_3px_0px_#0b1a3d]">
-            <div className="text-xs font-bungee text-[#0c389c] mb-2.5 uppercase tracking-wide">
-              ★ PILIH KARAKTER KANA:
+            <div className="text-xs font-bungee text-[#0c389c] mb-2.5 uppercase tracking-wide flex items-center justify-between">
+              <span>★ PILIH KARAKTER KANA:</span>
+              {isShuffled && <span className="text-[10px] text-[#d9261c] font-black">🔀 Posisi Diacak</span>}
             </div>
             <div className="grid grid-cols-5 gap-2 sm:gap-3">
-              {focusCandidates.map((item) => {
+              {displayedFocusCandidates.map((item) => {
                 const char = activeScript === 'katakana' ? item.katakana : item.hiragana;
                 return (
                   <button
@@ -183,90 +251,140 @@ export const KanaKeyboard: React.FC<KanaKeyboardProps> = ({
           </div>
         )}
 
-        {/* TAB: MAIN GOJUON (五十音) - CLEAN 5-COLUMN MATRIX WITHOUT CONSONANT HINTS */}
+        {/* TAB: MAIN GOJUON (五十音) */}
         {activeTab === 'main' && (
-          <div className="space-y-1.5">
-            {mainRows.map((row) => (
-              <div
-                key={row.id}
-                className="bg-white border-2 border-[#0b1a3d]/20 rounded-xl p-1.5 sm:p-2 hover:border-[#0b1a3d]/50 transition-colors"
-              >
-                <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-                  {row.items.map((item) => {
-                    const char = activeScript === 'katakana' ? item.katakana : item.hiragana;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => handleKeyClick(item)}
-                        className="kana-key bg-white hover:bg-[#ffd200] text-[#0b1a3d] py-2 sm:py-2.5 px-1 flex items-center justify-center rounded-lg border-2 border-[#0b1a3d]"
-                      >
-                        <span className="text-2xl sm:text-3xl font-bold font-kana leading-none">
-                          {char}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+          <div className="bg-white border-2 border-[#0b1a3d]/20 rounded-xl p-2 sm:p-3">
+            {isShuffled && allMainItems ? (
+              // Shuffled grid of all basic kana
+              <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2">
+                {allMainItems.map((item) => {
+                  const char = activeScript === 'katakana' ? item.katakana : item.hiragana;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleKeyClick(item)}
+                      className="kana-key bg-white hover:bg-[#ffd200] text-[#0b1a3d] py-2 sm:py-2.5 px-1 flex items-center justify-center rounded-lg border-2 border-[#0b1a3d]"
+                    >
+                      <span className="text-2xl sm:text-3xl font-bold font-kana leading-none">
+                        {char}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-            ))}
+            ) : (
+              // Ordered rows
+              <div className="space-y-1.5">
+                {mainRows.map((row) => (
+                  <div key={row.id} className="grid grid-cols-5 gap-1.5 sm:gap-2">
+                    {row.items.map((item) => {
+                      const char = activeScript === 'katakana' ? item.katakana : item.hiragana;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => handleKeyClick(item)}
+                          className="kana-key bg-white hover:bg-[#ffd200] text-[#0b1a3d] py-2 sm:py-2.5 px-1 flex items-center justify-center rounded-lg border-2 border-[#0b1a3d]"
+                        >
+                          <span className="text-2xl sm:text-3xl font-bold font-kana leading-none">
+                            {char}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* TAB: DAKUTEN & HANDAKUTEN (濁音・半濁音) - WITHOUT CONSONANT HINTS */}
+        {/* TAB: DAKUTEN & HANDAKUTEN (濁音・半濁音) */}
         {activeTab === 'dakuten' && (
-          <div className="space-y-1.5">
-            {dakuRows.map((row) => (
-              <div
-                key={row.id}
-                className="bg-white border-2 border-[#0b1a3d]/20 rounded-xl p-1.5 sm:p-2 hover:border-[#0b1a3d]/50 transition-colors"
-              >
-                <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-                  {row.items.map((item) => {
-                    const char = activeScript === 'katakana' ? item.katakana : item.hiragana;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => handleKeyClick(item)}
-                        className="kana-key bg-white hover:bg-[#ffe4e6] text-[#0b1a3d] py-2 sm:py-2.5 px-1 flex items-center justify-center rounded-lg border-2 border-[#0b1a3d]"
-                      >
-                        <span className="text-2xl sm:text-3xl font-bold font-kana leading-none">
-                          {char}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+          <div className="bg-white border-2 border-[#0b1a3d]/20 rounded-xl p-2 sm:p-3">
+            {isShuffled && allDakuItems ? (
+              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                {allDakuItems.map((item) => {
+                  const char = activeScript === 'katakana' ? item.katakana : item.hiragana;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleKeyClick(item)}
+                      className="kana-key bg-white hover:bg-[#ffe4e6] text-[#0b1a3d] py-2 sm:py-2.5 px-1 flex items-center justify-center rounded-lg border-2 border-[#0b1a3d]"
+                    >
+                      <span className="text-2xl sm:text-3xl font-bold font-kana leading-none">
+                        {char}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-            ))}
+            ) : (
+              <div className="space-y-1.5">
+                {dakuRows.map((row) => (
+                  <div key={row.id} className="grid grid-cols-5 gap-1.5 sm:gap-2">
+                    {row.items.map((item) => {
+                      const char = activeScript === 'katakana' ? item.katakana : item.hiragana;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => handleKeyClick(item)}
+                          className="kana-key bg-white hover:bg-[#ffe4e6] text-[#0b1a3d] py-2 sm:py-2.5 px-1 flex items-center justify-center rounded-lg border-2 border-[#0b1a3d]"
+                        >
+                          <span className="text-2xl sm:text-3xl font-bold font-kana leading-none">
+                            {char}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* TAB: YOON (拗音) - CLEAN GRID WITHOUT CONSONANT HINTS */}
+        {/* TAB: YOON (拗音) */}
         {activeTab === 'yoon' && (
-          <div className="space-y-2">
-            {yoonRows.map((row) => (
-              <div
-                key={row.id}
-                className="bg-white border-2 border-[#0b1a3d]/20 rounded-xl p-2 sm:p-2.5 hover:border-[#0b1a3d]/50 transition-colors"
-              >
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
-                  {row.items.map((item) => {
-                    const char = activeScript === 'katakana' ? item.katakana : item.hiragana;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => handleKeyClick(item)}
-                        className="kana-key bg-white hover:bg-[#d1fae5] text-[#0b1a3d] py-2 sm:py-2.5 px-1 flex items-center justify-center rounded-lg border-2 border-[#0b1a3d]"
-                      >
-                        <span className="text-xl sm:text-2xl font-bold font-kana leading-none">
-                          {char}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+          <div className="bg-white border-2 border-[#0b1a3d]/20 rounded-xl p-2 sm:p-3">
+            {isShuffled && allYoonItems ? (
+              <div className="grid grid-cols-3 sm:grid-cols-6 md:grid-cols-9 gap-1.5 sm:gap-2">
+                {allYoonItems.map((item) => {
+                  const char = activeScript === 'katakana' ? item.katakana : item.hiragana;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleKeyClick(item)}
+                      className="kana-key bg-white hover:bg-[#d1fae5] text-[#0b1a3d] py-2 sm:py-2.5 px-1 flex items-center justify-center rounded-lg border-2 border-[#0b1a3d]"
+                    >
+                      <span className="text-xl sm:text-2xl font-bold font-kana leading-none">
+                        {char}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-            ))}
+            ) : (
+              <div className="space-y-2">
+                {yoonRows.map((row) => (
+                  <div key={row.id} className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                    {row.items.map((item) => {
+                      const char = activeScript === 'katakana' ? item.katakana : item.hiragana;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => handleKeyClick(item)}
+                          className="kana-key bg-white hover:bg-[#d1fae5] text-[#0b1a3d] py-2 sm:py-2.5 px-1 flex items-center justify-center rounded-lg border-2 border-[#0b1a3d]"
+                        >
+                          <span className="text-xl sm:text-2xl font-bold font-kana leading-none">
+                            {char}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

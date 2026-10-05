@@ -97,7 +97,7 @@ export const KANA_ROWS: KanaRow[] = [
       { id: 'mi', romaji: 'mi', hiragana: 'み', katakana: 'ミ', rowId: 'row-m', groupType: 'main', orderIndex: 32 },
       { id: 'mu', romaji: 'mu', hiragana: 'む', katakana: 'ム', rowId: 'row-m', groupType: 'main', orderIndex: 33 },
       { id: 'me', romaji: 'me', hiragana: 'め', katakana: 'メ', rowId: 'row-m', groupType: 'main', orderIndex: 34 },
-      { id: 'mo', romaji: 'mo', hiragana: 'mo', katakana: 'モ', rowId: 'row-m', groupType: 'main', orderIndex: 35 },
+      { id: 'mo', romaji: 'mo', hiragana: 'も', katakana: 'モ', rowId: 'row-m', groupType: 'main', orderIndex: 35 },
     ],
   },
   {
