@@ -250,11 +250,11 @@ export const BruteForceTrainer: React.FC<BruteForceTrainerProps> = ({
       <div className="retro-card p-4 sm:p-5 bg-white order-last sm:order-none">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b-2 border-[#0b1a3d]/20">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="bg-[#0c389c] text-white text-xs font-black uppercase px-2.5 py-1 rounded-md">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="bg-[#0c389c] text-white text-xs font-black uppercase px-2.5 py-1 rounded-md shrink-0">
                 LEVEL {currentRow.level} OF {KANA_ROWS.length}
               </span>
-              <span className="font-bungee text-lg sm:text-xl text-[#0b1a3d]">
+              <span className="font-bungee text-sm sm:text-base md:text-lg text-[#0b1a3d] leading-snug">
                 {currentRow.name} — {currentRow.label}
               </span>
             </div>
@@ -301,12 +301,14 @@ export const BruteForceTrainer: React.FC<BruteForceTrainerProps> = ({
                     : 'bg-gray-50 border-gray-200 text-gray-400'
                 }`}
               >
-                <div className="flex items-center justify-between w-full px-1">
-                  <span className="text-[10px] font-black uppercase font-mono">{item.romaji}</span>
+                <div className="flex items-center justify-between w-full px-0.5 text-[10px] font-black leading-none">
+                  <span className="uppercase font-mono text-[#0b1a3d] truncate">{item.romaji}</span>
                   {isMastered ? (
-                    <span className="text-[10px] text-[#10b981] font-black">★ MASTER</span>
+                    <span className="text-[#059669] font-black shrink-0 flex items-center gap-0.5">
+                      ★<span className="hidden md:inline text-[9px]">MAX</span>
+                    </span>
                   ) : (
-                    <span className="text-[10px] font-bold">{streak}/4</span>
+                    <span className="text-gray-500 font-bold shrink-0 text-[10px]">{streak}/4</span>
                   )}
                 </div>
                 <div className="text-xl sm:text-2xl font-black font-kana my-0.5">
