@@ -1,0 +1,194 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-heading: 'Fredoka', system-ui, sans-serif;
+    --font-bungee: 'Bungee', cursive;
+    --font-kana: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', system-ui, sans-serif;
+  }
+
+  body {
+    background-color: #f6eedf;
+    color: #0d1629;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+}
+
+.font-heading {
+  font-family: 'Fredoka', 'Plus Jakarta Sans', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.font-bungee {
+  font-family: 'Bungee', cursive;
+}
+
+/* Standard Textbook Japanese Font for real handwriting accuracy */
+.font-kana {
+  font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', system-ui, sans-serif;
+  font-feature-settings: "palt";
+}
+
+/* Retro Toy Catalogue Box Shadows */
+.retro-card {
+  background: #ffffff;
+  border: 3.5px solid #0b1a3d;
+  box-shadow: 6px 6px 0px #0b1a3d;
+  border-radius: 14px;
+}
+
+.retro-card-blue {
+  background: #0c389c;
+  border: 3.5px solid #071e54;
+  box-shadow: 6px 6px 0px #071e54;
+  border-radius: 14px;
+  color: #ffffff;
+}
+
+.retro-card-red {
+  background: #d9261c;
+  border: 3.5px solid #73130d;
+  box-shadow: 6px 6px 0px #73130d;
+  border-radius: 14px;
+  color: #ffffff;
+}
+
+.retro-card-yellow {
+  background: #ffd200;
+  border: 3.5px solid #8f7400;
+  box-shadow: 6px 6px 0px #8f7400;
+  border-radius: 14px;
+  color: #0b1a3d;
+}
+
+.retro-btn {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  border: 3px solid #0b1a3d;
+  box-shadow: 4px 4px 0px #0b1a3d;
+  border-radius: 10px;
+  transition: all 0.08s ease-in-out;
+  cursor: pointer;
+  user-select: none;
+}
+
+.retro-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0px #0b1a3d;
+}
+
+.retro-btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0px #0b1a3d;
+}
+
+.retro-btn-yellow {
+  background-color: #ffd200;
+  color: #0b1a3d;
+}
+.retro-btn-yellow:hover {
+  background-color: #ffdc2e;
+}
+
+.retro-btn-blue {
+  background-color: #0c389c;
+  color: #ffffff;
+}
+.retro-btn-blue:hover {
+  background-color: #1248be;
+}
+
+.retro-btn-red {
+  background-color: #d9261c;
+  color: #ffffff;
+}
+.retro-btn-red:hover {
+  background-color: #eb352a;
+}
+
+.retro-btn-white {
+  background-color: #ffffff;
+  color: #0b1a3d;
+}
+.retro-btn-white:hover {
+  background-color: #f4f5f8;
+}
+
+.retro-btn-green {
+  background-color: #10b981;
+  color: #ffffff;
+}
+.retro-btn-green:hover {
+  background-color: #059669;
+}
+
+/* Starburst Badge */
+.starburst {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffd200;
+  color: #0b1a3d;
+  clip-path: polygon(
+    50% 0%, 63% 18%, 85% 6%, 82% 31%, 100% 40%, 87% 60%, 
+    98% 81%, 74% 82%, 67% 100%, 50% 89%, 33% 100%, 26% 82%, 
+    2% 81%, 13% 60%, 0% 40%, 18% 31%, 15% 6%, 37% 18%
+  );
+  font-family: 'Bungee', sans-serif;
+}
+
+.starburst-blue {
+  background-color: #0c389c;
+  color: #ffffff;
+}
+
+.starburst-red {
+  background-color: #d9261c;
+  color: #ffffff;
+}
+
+/* Custom Japanese Kana Key styles (Clean & Normal) */
+.kana-key {
+  font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', Meiryo, system-ui, sans-serif;
+  border: 2.5px solid #0b1a3d;
+  box-shadow: 3px 3px 0px #0b1a3d;
+  border-radius: 10px;
+  transition: all 0.06s ease;
+  user-select: none;
+}
+
+.kana-key:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #0b1a3d;
+}
+
+.kana-key:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px #0b1a3d;
+}
+
+/* Shake animation on wrong answer */
+@keyframes retro-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px) rotate(-1deg); }
+  40%, 80% { transform: translateX(8px) rotate(1deg); }
+}
+
+.animate-retro-shake {
+  animation: retro-shake 0.35s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* Pop bounce animation on correct answer */
+@keyframes retro-pop {
+  0% { transform: scale(0.92); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.animate-retro-pop {
+  animation: retro-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
