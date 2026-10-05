@@ -2,8 +2,6 @@
 
 > **The Ultimate Japanese Kana & Vocabulary Drill Web App with Retro Arcade Neo-Brutalist Toy Catalogue Aesthetics.**
 
-Inspired by [vedxyz/kana](https://github.com/vedxyz/kana) with enhanced **Reverse Drill (Romaji → Kana On-Screen Keypad)** and **Vocabulary (Word & Reverse Word) Drill Modes**.
-
 ---
 
 ## 🌟 Key Features

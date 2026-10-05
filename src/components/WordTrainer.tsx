@@ -144,9 +144,9 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
   if (!currentWord) return null;
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full flex flex-col gap-4">
       {/* 1. SCRIPT & CATEGORY CONTROLS BANNER */}
-      <div className="retro-card p-4 sm:p-5 bg-white">
+      <div className="retro-card p-4 sm:p-5 bg-white order-last sm:order-none">
         
         {/* TOP ROW: TITLE & SCRIPT FILTER BUTTONS */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pb-3 border-b-2 border-[#0b1a3d]/20 mb-3.5">
@@ -272,10 +272,10 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
       </div>
 
       {/* 2. MAIN WORD DRILL QUESTION CARD */}
-      <div className="retro-card bg-white p-5 sm:p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
+      <div className="retro-card bg-white p-4 sm:p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
         
         {/* Top Badges */}
-        <div className="absolute top-3 left-4 flex items-center gap-2">
+        <div className="self-stretch pr-12 sm:pr-0 sm:absolute sm:top-3 sm:left-4 sm:right-16 flex flex-wrap items-center gap-x-2 gap-y-1">
           <span
             className={`text-xs font-black uppercase px-2.5 py-1 rounded-md border ${
               direction === 'romaji_to_kana'
@@ -301,7 +301,7 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
         </button>
 
         {/* WORD DISPLAY */}
-        <div className="my-6">
+        <div className="my-4 sm:my-6">
           {direction === 'kana_to_romaji' ? (
             // NORMAL: Show Kana Word
             <div className="flex flex-col items-center">

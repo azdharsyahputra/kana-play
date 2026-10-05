@@ -12,7 +12,7 @@ import { CheatSheet } from './components/CheatSheet';
 import { RetroFooter } from './components/RetroFooter';
 
 export function App() {
-  const [currentTab, setCurrentTab] = useState<AppTab>('brute-force');
+  const [currentTab, setCurrentTab] = useState<AppTab>('home');
   const [script, setScript] = useState<KanaScript>('hiragana');
   const [direction, setDirection] = useState<DrillDirection>('kana_to_romaji');
   const [stats, setStats] = useState<UserStats>(loadUserStats);
@@ -20,6 +20,12 @@ export function App() {
     const loaded = loadUserStats();
     return loaded.bruteForceLevel || 1;
   });
+
+  // New page feel on every tab switch — matters on phones where the drill was scrolled
+  const selectTab = (tab: AppTab) => {
+    setCurrentTab(tab);
+    window.scrollTo(0, 0);
+  };
 
   // Sync state if stats change
   const handleUpdateStats = (newStats: UserStats) => {
@@ -38,27 +44,27 @@ export function App() {
       {/* 1. TOP NAVBAR & STATS TICKER */}
       <Navbar
         currentTab={currentTab}
-        onSelectTab={setCurrentTab}
+        onSelectTab={selectTab}
         stats={stats}
         onResetStats={handleResetStats}
       />
 
       {/* 2. MAIN CONTAINER */}
-      <main className="max-w-7xl w-full mx-auto px-3 sm:px-6 py-6 flex-1">
+      <main className="max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 flex-1">
         
-        {/* HERO FEATURE SHOWCASE BANNER */}
-        <RetroFeatureShowcase
-          onSelectTab={setCurrentTab}
-          onSelectDirection={setDirection}
-        />
-
-        {/* 3. SIDEBAR + ACTIVE TAB DRILL WORKSPACE */}
+        {/* LANDING: simple intro, drills open from the navbar / CTA buttons */}
+        {currentTab === 'home' ? (
+          <RetroFeatureShowcase
+            onSelectTab={selectTab}
+            onSelectDirection={setDirection}
+          />
+        ) : (
         <div className="flex flex-col lg:flex-row items-start gap-6">
           
           {/* LEFT SIDEBAR (Category & Level Selector) */}
           <RetroSidebar
             currentTab={currentTab}
-            onSelectTab={setCurrentTab}
+            onSelectTab={selectTab}
             script={script}
             onSelectScript={setScript}
             direction={direction}
@@ -68,8 +74,8 @@ export function App() {
             onSelectLevel={setSelectedLevel}
           />
 
-          {/* MAIN DRILL WORKSPACE */}
-          <div className="flex-1 w-full min-w-0">
+          {/* MAIN DRILL WORKSPACE (first on mobile, settings sidebar below) */}
+          <div className="flex-1 w-full min-w-0 order-first lg:order-none">
             {currentTab === 'brute-force' && (
               <BruteForceTrainer
                 script={script}
@@ -108,6 +114,7 @@ export function App() {
             )}
           </div>
         </div>
+        )}
       </main>
 
       {/* 4. RETRO FOOTER */}

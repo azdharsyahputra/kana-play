@@ -19,6 +19,7 @@ let soundEnabled = true;
 
 export function setSoundEnabled(enabled: boolean) {
   soundEnabled = enabled;
+  if (!enabled && typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
   if (typeof window !== 'undefined') {
     localStorage.setItem('kanadrill_sound', enabled ? 'true' : 'false');
   }
@@ -149,6 +150,7 @@ export function playKeyClickSound() {
  * Native Japanese Speech Pronunciation
  */
 export function speakJapanese(text: string) {
+  if (!getSoundEnabled()) return; // mute toggle silences the voice too, not just SFX
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
   try {
     window.speechSynthesis.cancel();

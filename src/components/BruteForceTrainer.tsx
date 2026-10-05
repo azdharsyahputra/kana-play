@@ -46,14 +46,40 @@ export const BruteForceTrainer: React.FC<BruteForceTrainerProps> = ({
   // Determine current active row based on selectedLevel
   const currentRow = KANA_ROWS.find(r => r.level === selectedLevel) || KANA_ROWS[0];
 
-  // Pick random next item from the current row, preventing same character twice in a row
+  // Check mastery status of current row
+  const rowItemsStatus = currentRow.items.map(item => {
+    const activeScript = script === 'katakana' ? 'katakana' : 'hiragana';
+    const key = `${activeScript}:${item.id}`;
+    const mastery = stats.kanaMasteryMap[key] || {
+      correctCount: 0,
+      incorrectCount: 0,
+      currentStreak: 0,
+      mastered: false,
+    };
+    return {
+      item,
+      mastery,
+      char: activeScript === 'katakana' ? item.katakana : item.hiragana,
+    };
+  });
+
+  const allRowMastered = rowItemsStatus.every(s => s.mastery.mastered);
+
+  // Phase is derived from mastery: PRACTICE drills only this row; once passed,
+  // REVIEW shuffles every row from A up to this level so older rows stay fresh.
+  const isReview = allRowMastered;
+  const poolItems: KanaItem[] = isReview
+    ? KANA_ROWS.filter(r => r.level <= selectedLevel).flatMap(r => r.items)
+    : currentRow.items;
+
+  // Pick random next item from the pool, preventing same character twice in a row
   const pickNextQuestion = (prevId?: string) => {
-    if (!currentRow || currentRow.items.length === 0) return;
+    if (poolItems.length === 0) return;
     const currentPrev = prevId ?? lastItemIdRef.current;
 
     // Weight items that are not mastered higher
     let weightedItems: KanaItem[] = [];
-    currentRow.items.forEach(item => {
+    poolItems.forEach(item => {
       const hKey = `hiragana:${item.id}`;
       const kKey = `katakana:${item.id}`;
       const isMastered = stats.kanaMasteryMap[hKey]?.mastered && stats.kanaMasteryMap[kKey]?.mastered;
@@ -65,14 +91,14 @@ export const BruteForceTrainer: React.FC<BruteForceTrainerProps> = ({
     });
 
     // Ensure we don't pick the same item consecutively if more than 1 item exists
-    if (currentRow.items.length > 1 && currentPrev) {
+    if (poolItems.length > 1 && currentPrev) {
       const filtered = weightedItems.filter(item => item.id !== currentPrev);
       if (filtered.length > 0) {
         weightedItems = filtered;
       }
     }
 
-    const randomItem = weightedItems[Math.floor(Math.random() * weightedItems.length)] || currentRow.items[0];
+    const randomItem = weightedItems[Math.floor(Math.random() * weightedItems.length)] || poolItems[0];
     lastItemIdRef.current = randomItem.id;
 
     // Pick script
@@ -100,25 +126,6 @@ export const BruteForceTrainer: React.FC<BruteForceTrainerProps> = ({
   useEffect(() => {
     pickNextQuestion();
   }, [selectedLevel, script]);
-
-  // Check mastery status of current row
-  const rowItemsStatus = currentRow.items.map(item => {
-    const activeScript = script === 'katakana' ? 'katakana' : 'hiragana';
-    const key = `${activeScript}:${item.id}`;
-    const mastery = stats.kanaMasteryMap[key] || {
-      correctCount: 0,
-      incorrectCount: 0,
-      currentStreak: 0,
-      mastered: false,
-    };
-    return {
-      item,
-      mastery,
-      char: activeScript === 'katakana' ? item.katakana : item.hiragana,
-    };
-  });
-
-  const allRowMastered = rowItemsStatus.every(s => s.mastery.mastered);
 
   // Evaluate user submission
   const handleSubmitAnswer = (givenAnswer: string) => {
@@ -153,15 +160,15 @@ export const BruteForceTrainer: React.FC<BruteForceTrainerProps> = ({
           return nextStats.kanaMasteryMap[k]?.mastered;
         });
 
-        if (checkAllNow && nextStats.bruteForceLevel === selectedLevel && selectedLevel < KANA_ROWS.length) {
-          // LEVEL UP!
+        if (checkAllNow && justMastered) {
+          // LEVEL PASSED! Track furthest level reached, then switch to review
           const upgradedStats: UserStats = {
             ...nextStats,
-            bruteForceLevel: selectedLevel + 1,
+            bruteForceLevel: Math.max(nextStats.bruteForceLevel, Math.min(selectedLevel + 1, KANA_ROWS.length)),
           };
           onUpdateStats(upgradedStats);
           saveUserStats(upgradedStats);
-          triggerLevelUpCelebration(selectedLevel + 1);
+          triggerLevelUpCelebration();
         } else {
           onUpdateStats(nextStats);
         }
@@ -199,7 +206,7 @@ export const BruteForceTrainer: React.FC<BruteForceTrainerProps> = ({
     }
   };
 
-  const triggerLevelUpCelebration = (nextLvl: number) => {
+  const triggerLevelUpCelebration = () => {
     setLevelUpCelebration(true);
     playLevelUpSound();
     confetti({
@@ -209,11 +216,7 @@ export const BruteForceTrainer: React.FC<BruteForceTrainerProps> = ({
       colors: ['#ffd200', '#0c389c', '#d9261c', '#10b981'],
     });
 
-    setTimeout(() => {
-      onSelectLevel(nextLvl);
-      setLevelUpCelebration(false);
-      pickNextQuestion();
-    }, 2400);
+    setTimeout(() => setLevelUpCelebration(false), 2400);
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -242,9 +245,9 @@ export const BruteForceTrainer: React.FC<BruteForceTrainerProps> = ({
       : currentPrompt.item.hiragana;
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full flex flex-col gap-4">
       {/* 1. BRUTE FORCE BANNER & LEVEL STATUS */}
-      <div className="retro-card p-4 sm:p-5 bg-white">
+      <div className="retro-card p-4 sm:p-5 bg-white order-last sm:order-none">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b-2 border-[#0b1a3d]/20">
           <div>
             <div className="flex items-center gap-2">
@@ -256,7 +259,15 @@ export const BruteForceTrainer: React.FC<BruteForceTrainerProps> = ({
               </span>
             </div>
             <p className="text-xs font-bold text-gray-600 mt-0.5">
-              Hafalkan seluruh huruf di baris ini hingga mencapai status <strong>MASTERED (★)</strong> untuk membuka level berikutnya!
+              {isReview ? (
+                <>
+                  <span className="text-[#047857]">★ REVIEW</span> — level lulus! Soal diacak dari baris A sampai level ini biar makin nempel.
+                </>
+              ) : (
+                <>
+                  <span className="text-[#0c389c]">◎ FOKUS</span> — latih baris ini sampai semua huruf <strong>MASTERED (★)</strong>, lalu lanjut ke mode review.
+                </>
+              )}
             </p>
           </div>
 
@@ -326,16 +337,16 @@ export const BruteForceTrainer: React.FC<BruteForceTrainerProps> = ({
             ★ LEVEL {selectedLevel} COMPLETE! ★
           </h2>
           <p className="text-sm font-heading font-black text-[#0c389c] mt-1">
-            Luar biasa! Karakter di baris ini sudah kamu kuasai. Menuju Level {selectedLevel + 1}...
+            Luar biasa! Sekarang mode REVIEW: soal acak dari baris A sampai level {selectedLevel}.
           </p>
         </div>
       )}
 
       {/* 4. MAIN QUESTION CARD (Nova Play Style) */}
-      <div className="retro-card bg-white p-5 sm:p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
+      <div className="retro-card bg-white p-4 sm:p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
         
         {/* Direction Indicator Badge */}
-        <div className="absolute top-3 left-4 flex items-center gap-2">
+        <div className="self-stretch pr-12 sm:pr-0 sm:absolute sm:top-3 sm:left-4 sm:right-16 flex flex-wrap items-center gap-x-2 gap-y-1">
           <span
             className={`text-xs font-black uppercase px-2.5 py-1 rounded-md border ${
               direction === 'romaji_to_kana'
@@ -361,7 +372,7 @@ export const BruteForceTrainer: React.FC<BruteForceTrainerProps> = ({
         </button>
 
         {/* BIG CHARACTER DISPLAY */}
-        <div className="my-6">
+        <div className="my-4 sm:my-6">
           {direction === 'kana_to_romaji' ? (
             // NORMAL: Show Kana
             <div
@@ -427,7 +438,7 @@ export const BruteForceTrainer: React.FC<BruteForceTrainerProps> = ({
                 OK
               </button>
             </div>
-            <p className="text-[11px] font-bold text-gray-500">
+            <p className="hidden sm:block text-[11px] font-bold text-gray-500">
               Tekan <kbd className="px-1.5 py-0.5 bg-gray-200 border border-gray-400 rounded text-[10px]">Enter</kbd> atau biarkan otomatis verifikasi saat mengetik.
             </p>
           </div>
@@ -436,7 +447,7 @@ export const BruteForceTrainer: React.FC<BruteForceTrainerProps> = ({
           <div className="w-full mt-2">
             <KanaKeyboard
               script={currentPrompt.activeScript}
-              focusCandidates={currentRow.items}
+              focusCandidates={poolItems}
               onSelectKana={(selectedChar) => {
                 handleSubmitAnswer(selectedChar);
               }}

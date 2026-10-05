@@ -115,7 +115,6 @@ export const RetroSidebar: React.FC<RetroSidebarProps> = ({
 
         <div className="max-h-[320px] overflow-y-auto space-y-1 pr-1">
           {KANA_ROWS.map((row) => {
-            const isUnlocked = row.level <= stats.bruteForceLevel;
             const isCurrent = row.level === selectedLevel;
 
             // Count mastered items in this row
@@ -130,7 +129,6 @@ export const RetroSidebar: React.FC<RetroSidebarProps> = ({
             return (
               <button
                 key={row.id}
-                disabled={!isUnlocked}
                 onClick={() => {
                   playKeyClickSound();
                   onSelectLevel(row.level);
@@ -139,9 +137,7 @@ export const RetroSidebar: React.FC<RetroSidebarProps> = ({
                 className={`w-full text-left p-2 rounded-xl border-2 transition-all flex items-center justify-between group ${
                   isCurrent
                     ? 'bg-[#ffd200] border-[#0b1a3d] text-[#0b1a3d] shadow-[2px_2px_0px_#0b1a3d] font-black'
-                    : isUnlocked
-                    ? 'bg-white border-[#0b1a3d]/20 text-[#0b1a3d] hover:border-[#0b1a3d] hover:bg-[#f6eedf]'
-                    : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                    : 'bg-white border-[#0b1a3d]/20 text-[#0b1a3d] hover:border-[#0b1a3d] hover:bg-[#f6eedf]'
                 }`}
               >
                 <div className="flex items-center gap-2 min-w-0">
@@ -149,9 +145,7 @@ export const RetroSidebar: React.FC<RetroSidebarProps> = ({
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black font-bungee border shrink-0 ${
                       isFullyMastered
                         ? 'bg-[#10b981] text-white border-[#047857]'
-                        : isUnlocked
-                        ? 'bg-[#0c389c] text-white border-[#071e54]'
-                        : 'bg-gray-300 text-gray-500 border-gray-400'
+                        : 'bg-[#0c389c] text-white border-[#071e54]'
                     }`}
                   >
                     {row.level}
@@ -181,7 +175,7 @@ export const RetroSidebar: React.FC<RetroSidebarProps> = ({
       </div>
 
       {/* 3. PRO TIPS & MOTIVATION BANNER (Nova Play style) */}
-      <div className="retro-card-blue p-3.5 text-center">
+      <div className="retro-card-blue p-3.5 text-center hidden lg:block">
         <Sparkles className="w-6 h-6 text-[#ffd200] mx-auto mb-1 animate-pulse" />
         <h4 className="font-bungee text-sm text-[#ffd200] uppercase">
           CARA CEPAT HAFAL

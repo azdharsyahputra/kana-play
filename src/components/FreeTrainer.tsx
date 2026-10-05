@@ -153,9 +153,9 @@ export const FreeTrainer: React.FC<FreeTrainerProps> = ({
       : currentPrompt.item.hiragana;
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full flex flex-col gap-4">
       {/* 1. ROW FILTER CONTROLS */}
-      <div className="retro-card p-4 bg-white">
+      <div className="retro-card p-4 bg-white order-last sm:order-none">
         <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#0b1a3d]/20 mb-3">
           <div className="flex items-center gap-2">
             <span className="font-bungee text-sm sm:text-base text-[#0b1a3d]">
@@ -206,8 +206,8 @@ export const FreeTrainer: React.FC<FreeTrainerProps> = ({
       </div>
 
       {/* 2. DRILL CARD */}
-      <div className="retro-card bg-white p-5 sm:p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
-        <div className="absolute top-3 left-4 flex items-center gap-2">
+      <div className="retro-card bg-white p-4 sm:p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
+        <div className="self-stretch pr-12 sm:pr-0 sm:absolute sm:top-3 sm:left-4 sm:right-16 flex flex-wrap items-center gap-x-2 gap-y-1">
           <span
             className={`text-xs font-black uppercase px-2.5 py-1 rounded-md border ${
               direction === 'romaji_to_kana'
@@ -231,7 +231,7 @@ export const FreeTrainer: React.FC<FreeTrainerProps> = ({
         </button>
 
         {/* CHARACTER DISPLAY */}
-        <div className="my-6">
+        <div className="my-4 sm:my-6">
           {direction === 'kana_to_romaji' ? (
             <div
               className={`text-7xl sm:text-9xl font-black font-kana select-none text-[#0b1a3d] ${
