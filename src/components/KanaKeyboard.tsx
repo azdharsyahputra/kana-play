@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { KANA_ROWS } from '../data/kanaData';
 import type { KanaItem, KanaScript } from '../types';
 import { playKeyClickSound, speakJapanese } from '../utils/audio';
-import { Delete, CornerDownLeft, Volume2, Grid3X3, Layers } from 'lucide-react';
+import { Delete, CornerDownLeft, Volume2 } from 'lucide-react';
 
 interface KanaKeyboardProps {
   script: KanaScript;
@@ -25,7 +25,7 @@ export const KanaKeyboard: React.FC<KanaKeyboardProps> = ({
   onSubmit,
   focusCandidates,
 }) => {
-  // Default to 'main' so user sees the real kana table without giveaway shortcuts, or allow tab switching
+  // Default to 'main'
   const [activeTab, setActiveTab] = useState<'main' | 'dakuten' | 'yoon' | 'tier'>('main');
 
   const activeScript: 'hiragana' | 'katakana' = script === 'katakana' ? 'katakana' : 'hiragana';
@@ -155,10 +155,10 @@ export const KanaKeyboard: React.FC<KanaKeyboardProps> = ({
         </div>
       )}
 
-      {/* KEYPAD TILES: CLEAN TEXTBOOK FONT WITH NO ROMAJI HINTS */}
+      {/* KEYPAD TILES: CLEAN TEXTBOOK FONT WITH NO ROMAJI / CONSONANT HINTS */}
       <div className="max-h-[290px] overflow-y-auto pr-1 space-y-2">
         
-        {/* TAB: FOCUS TIER (Active Level) - NO ROMAJI HINTS */}
+        {/* TAB: FOCUS TIER (Active Level) - NO CONSONANT/ROMAJI HINTS */}
         {activeTab === 'tier' && focusCandidates && (
           <div className="bg-white border-2 border-[#0b1a3d] rounded-xl p-3 shadow-[3px_3px_0px_#0b1a3d]">
             <div className="text-xs font-bungee text-[#0c389c] mb-2.5 uppercase tracking-wide">
@@ -183,18 +183,15 @@ export const KanaKeyboard: React.FC<KanaKeyboardProps> = ({
           </div>
         )}
 
-        {/* TAB: MAIN GOJUON (五十音) - NO ROMAJI HINTS */}
+        {/* TAB: MAIN GOJUON (五十音) - CLEAN 5-COLUMN MATRIX WITHOUT CONSONANT HINTS */}
         {activeTab === 'main' && (
           <div className="space-y-1.5">
             {mainRows.map((row) => (
               <div
                 key={row.id}
-                className="bg-white border-2 border-[#0b1a3d]/20 rounded-xl p-1.5 sm:p-2 flex items-center gap-2 hover:border-[#0b1a3d]/50 transition-colors"
+                className="bg-white border-2 border-[#0b1a3d]/20 rounded-xl p-1.5 sm:p-2 hover:border-[#0b1a3d]/50 transition-colors"
               >
-                <span className="text-xs font-black w-10 sm:w-12 text-[#0c389c] uppercase shrink-0 font-heading">
-                  {row.name.replace('-Row', '')}
-                </span>
-                <div className="grid grid-cols-5 gap-1.5 flex-1">
+                <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
                   {row.items.map((item) => {
                     const char = activeScript === 'katakana' ? item.katakana : item.hiragana;
                     return (
@@ -215,18 +212,15 @@ export const KanaKeyboard: React.FC<KanaKeyboardProps> = ({
           </div>
         )}
 
-        {/* TAB: DAKUTEN & HANDAKUTEN (濁音・半濁音) - NO ROMAJI HINTS */}
+        {/* TAB: DAKUTEN & HANDAKUTEN (濁音・半濁音) - WITHOUT CONSONANT HINTS */}
         {activeTab === 'dakuten' && (
           <div className="space-y-1.5">
             {dakuRows.map((row) => (
               <div
                 key={row.id}
-                className="bg-white border-2 border-[#0b1a3d]/20 rounded-xl p-1.5 sm:p-2 flex items-center gap-2 hover:border-[#0b1a3d]/50 transition-colors"
+                className="bg-white border-2 border-[#0b1a3d]/20 rounded-xl p-1.5 sm:p-2 hover:border-[#0b1a3d]/50 transition-colors"
               >
-                <span className="text-xs font-black w-10 sm:w-14 text-[#d9261c] uppercase shrink-0 font-heading">
-                  {row.name.replace('-Row', '')}
-                </span>
-                <div className="grid grid-cols-5 gap-1.5 flex-1">
+                <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
                   {row.items.map((item) => {
                     const char = activeScript === 'katakana' ? item.katakana : item.hiragana;
                     return (
@@ -247,17 +241,14 @@ export const KanaKeyboard: React.FC<KanaKeyboardProps> = ({
           </div>
         )}
 
-        {/* TAB: YOON (拗音) - NO ROMAJI HINTS */}
+        {/* TAB: YOON (拗音) - CLEAN GRID WITHOUT CONSONANT HINTS */}
         {activeTab === 'yoon' && (
           <div className="space-y-2">
             {yoonRows.map((row) => (
               <div
                 key={row.id}
-                className="bg-white border-2 border-[#0b1a3d]/20 rounded-xl p-2.5"
+                className="bg-white border-2 border-[#0b1a3d]/20 rounded-xl p-2 sm:p-2.5 hover:border-[#0b1a3d]/50 transition-colors"
               >
-                <div className="text-xs font-bungee text-[#10b981] uppercase mb-2">
-                  {row.name}
-                </div>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
                   {row.items.map((item) => {
                     const char = activeScript === 'katakana' ? item.katakana : item.hiragana;
