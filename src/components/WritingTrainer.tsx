@@ -64,7 +64,7 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
   const [inkColor, setInkColor] = useState<string>('#111827');
 
   // 3. Guidance & Display Modes
-  const [tracingMode, setTracingMode] = useState<boolean>(true); // Guide watermark
+  const [tracingMode, setTracingMode] = useState<boolean>(false); // Guide watermark off by default for memory drill
   const showGrid = true; // Calligraphy crosshairs (always enabled for best calligraphy alignment)
   const [showStrokeGuide, setShowStrokeGuide] = useState<boolean>(false); // Step-by-step tips
   const [isPeeking, setIsPeeking] = useState<boolean>(false); // Temporary hint
@@ -538,8 +538,10 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
             <span className="text-2xl font-bungee text-[#0c389c] leading-none uppercase">
               {currentKanaItem.romaji}
             </span>
-            <span className="text-xs font-bold text-gray-500 font-kana">
-              ({targetChar})
+            <span className={`text-[9px] font-bungee px-1.5 py-0.5 rounded border border-[#0b1a3d] uppercase tracking-wide ${
+              activeScript === 'hiragana' ? 'bg-[#ffd200] text-[#0b1a3d]' : 'bg-[#e0e7ff] text-[#3730a3]'
+            }`}>
+              {activeScript}
             </span>
             <button
               onClick={handlePlayVoice}
@@ -790,12 +792,20 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
                     </div>
                   </div>
 
-                  {/* Score pill */}
-                  <div className="text-right shrink-0 ml-2">
-                    <span className="font-bungee text-2xl sm:text-3xl text-[#0c389c] leading-none">
-                      {evaluation.score}%
-                    </span>
-                    <div className="text-[8px] font-black text-gray-400 uppercase">AKURASI</div>
+                  {/* Target Kana Answer Key & Score pill */}
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <div className="text-center px-2 py-0.5 bg-[#f6eedf] rounded-lg border border-[#0b1a3d]/20">
+                      <span className="text-[8px] font-black text-gray-500 uppercase block">KUNCI</span>
+                      <span className="font-kana text-xl sm:text-2xl font-bold text-[#0c389c] leading-none">
+                        {targetChar}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bungee text-2xl sm:text-3xl text-[#0c389c] leading-none">
+                        {evaluation.score}%
+                      </span>
+                      <div className="text-[8px] font-black text-gray-400 uppercase">AKURASI</div>
+                    </div>
                   </div>
                 </div>
 
