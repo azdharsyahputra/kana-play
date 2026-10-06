@@ -17,12 +17,11 @@ import {
   ChevronRight,
   Shuffle,
   Sparkles,
-  Grid,
-  PenTool,
   Check,
   AlertTriangle,
   Lightbulb,
   Zap,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 interface WritingTrainerProps {
@@ -34,16 +33,15 @@ interface WritingTrainerProps {
 }
 
 const BRUSH_SIZES = [
-  { label: 'Tipis', size: 6 },
-  { label: 'Sedang', size: 10 },
-  { label: 'Tebal', size: 16 },
+  { label: 'Tipis', size: 6, short: 'S' },
+  { label: 'Sedang', size: 10, short: 'M' },
+  { label: 'Tebal', size: 16, short: 'L' },
 ];
 
 const INK_COLORS = [
-  { label: 'Sumi (Hitam)', color: '#111827' },
-  { label: 'Biru Retro', color: '#0c389c' },
-  { label: 'Akai (Merah)', color: '#d9261c' },
-  { label: 'Hijau', color: '#059669' },
+  { label: 'Hitam', color: '#111827' },
+  { label: 'Biru', color: '#0c389c' },
+  { label: 'Merah', color: '#d9261c' },
 ];
 
 export const WritingTrainer: React.FC<WritingTrainerProps> = ({
@@ -67,7 +65,7 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
 
   // 3. Guidance & Display Modes
   const [tracingMode, setTracingMode] = useState<boolean>(true); // Guide watermark
-  const [showGrid, setShowGrid] = useState<boolean>(true); // Calligraphy crosshairs
+  const showGrid = true; // Calligraphy crosshairs (always enabled for best calligraphy alignment)
   const [showStrokeGuide, setShowStrokeGuide] = useState<boolean>(false); // Step-by-step tips
   const [isPeeking, setIsPeeking] = useState<boolean>(false); // Temporary hint
 
@@ -240,9 +238,8 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
     // 4. Draw Overlay in Evaluation Mode (shows reference outline over user drawing)
     if (evaluation) {
       ctx.save();
-      // Semi-transparent target silhouette in teal/emerald
-      ctx.fillStyle = evaluation.score >= 60 ? 'rgba(16, 185, 129, 0.28)' : 'rgba(217, 38, 28, 0.25)';
-      ctx.strokeStyle = evaluation.score >= 60 ? '#10b981' : '#d9261c';
+      ctx.fillStyle = evaluation.score >= PASS_THRESHOLD ? 'rgba(16, 185, 129, 0.28)' : 'rgba(217, 38, 28, 0.25)';
+      ctx.strokeStyle = evaluation.score >= PASS_THRESHOLD ? '#10b981' : '#d9261c';
       ctx.lineWidth = 2.5;
       ctx.setLineDash([4, 4]);
       ctx.textAlign = 'center';
@@ -262,7 +259,9 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
     if (!canvas || !container) return;
 
     const rect = container.getBoundingClientRect();
-    const size = Math.floor(Math.min(rect.width, 380));
+    // Compact size calculation: ensure it fits mobile screens with margin
+    const availableWidth = rect.width ? Math.floor(rect.width) : 340;
+    const size = Math.min(Math.max(280, availableWidth), 380);
     if (size <= 0) return;
 
     const dpr = window.devicePixelRatio || 1;
@@ -300,7 +299,6 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    // Prevent drawing if already evaluated
     if (evaluation) return;
 
     const canvas = canvasRef.current;
@@ -328,7 +326,7 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
       try {
         canvas.releasePointerCapture(e.pointerId);
       } catch {
-        // ignore if not captured
+        // ignore
       }
     }
 
@@ -389,7 +387,6 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
     const isPassed = result.score >= PASS_THRESHOLD;
 
     if (isPassed) {
-      // 1. Play sounds & animations
       playCorrectSound(stats.currentStreak + 1);
       speakJapanese(targetChar);
 
@@ -401,12 +398,10 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
         });
       }
 
-      // 2. Automatically record kana mastery & streak
       const kanaKey = `${activeScript}:${currentKanaItem.id}`;
       const { nextStats } = recordKanaAnswer(stats, kanaKey, true, 4);
       onUpdateStats(nextStats);
 
-      // 3. Option 3: Auto-Advance smoothly if enabled
       if (autoAdvance) {
         setIsAutoAdvancing(true);
         if (autoAdvanceTimeoutRef.current) clearTimeout(autoAdvanceTimeoutRef.current);
@@ -421,9 +416,8 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
     }
   };
 
-  // Confirm Answer as Correct & Next (Manual override or when autoAdvance is off)
+  // Confirm Answer as Correct & Next
   const handleConfirmCorrect = () => {
-    // If not already registered via auto-pass
     if (!evaluation || evaluation.score < PASS_THRESHOLD) {
       playCorrectSound(stats.currentStreak + 1);
       speakJapanese(targetChar);
@@ -465,6 +459,11 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
 
   const handleRandom = () => {
     playKeyClickSound();
+    if (autoAdvanceTimeoutRef.current) {
+      clearTimeout(autoAdvanceTimeoutRef.current);
+      autoAdvanceTimeoutRef.current = null;
+    }
+    setIsAutoAdvancing(false);
     const nextIdx = Math.floor(Math.random() * availableItems.length);
     setCurrentIndex(nextIdx);
   };
@@ -526,108 +525,366 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
   }, []);
 
   return (
-    <div className="w-full flex flex-col gap-4">
-      {/* 1. TOP HEADER & FILTER BAR */}
-      <div className="retro-card p-3.5 sm:p-4 bg-white">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pb-3 border-b-2 border-[#0b1a3d]/20">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#ffd200] border-2 border-[#0b1a3d] flex items-center justify-center shadow-[2px_2px_0px_#0b1a3d]">
-              <PenTool className="w-5 h-5 text-[#0b1a3d]" />
-            </div>
-            <div>
-              <h2 className="font-bungee text-base sm:text-lg text-[#0b1a3d] leading-none">
-                ★ KANA WRITING DRILL ★
-              </h2>
-              <p className="text-xs font-bold text-gray-500 mt-1">
-                Latih memori otot dan goresan huruf kana langsung di kanvas interaktif!
-              </p>
-            </div>
-          </div>
-
-          {/* SCRIPT SELECTOR */}
-          <div className="flex items-center gap-1.5 bg-[#f6eedf] p-1.5 rounded-xl border-2 border-[#0b1a3d] self-stretch md:self-auto justify-center">
-            {(['hiragana', 'katakana', 'mixed'] as KanaScript[]).map(s => (
-              <button
-                key={s}
-                onClick={() => {
-                  playKeyClickSound();
-                  onSelectScript(s);
-                }}
-                className={`px-3 py-1 text-xs font-heading font-black rounded-lg transition-all uppercase ${
-                  script === s
-                    ? 'bg-[#0c389c] text-white shadow-[2px_2px_0px_#0b1a3d]'
-                    : 'text-[#0b1a3d] hover:bg-white'
-                }`}
-              >
-                {s === 'hiragana' ? 'ひらがな' : s === 'katakana' ? 'カタカナ' : 'Campur'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* ROW SELECTOR & NAVIGATION */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3">
+    <div className="w-full flex flex-col gap-3 sm:gap-4">
+      
+      {/* 1. MOBILE COMPACT PROMPT & NAV BAR (Visible ONLY on mobile, sits right above canvas) */}
+      <div className="lg:hidden retro-card p-3 bg-white flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          {/* Left: Prompt & Audio */}
           <div className="flex items-center gap-2 min-w-0">
-            <label className="text-[11px] font-black uppercase text-[#0c389c] tracking-wider whitespace-nowrap">
-              BARIS KANA:
-            </label>
-            <select
-              value={selectedRowId}
-              onChange={e => {
-                playKeyClickSound();
-                setSelectedRowId(e.target.value);
-                setCurrentIndex(0);
-              }}
-              className="bg-white border-2 border-[#0b1a3d] text-xs font-bold text-[#0b1a3d] rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-[#ffd200] shadow-[2px_2px_0px_#0b1a3d]"
+            <span className="text-2xl font-bungee text-[#0c389c] leading-none uppercase">
+              {currentKanaItem.romaji}
+            </span>
+            <span className="text-xs font-bold text-gray-500 font-kana">
+              ({targetChar})
+            </span>
+            <button
+              onClick={handlePlayVoice}
+              title="Dengarkan suara"
+              className="p-1 rounded-full bg-[#f6eedf] hover:bg-[#ffd200] border border-[#0b1a3d] transition-all cursor-pointer shrink-0"
             >
-              <option value="all">Semua Baris (Gojuon)</option>
-              {KANA_ROWS.map(row => (
-                <option key={row.id} value={row.id}>
-                  {row.name} ({row.label})
-                </option>
-              ))}
-            </select>
+              <Volume2 className="w-3.5 h-3.5 text-[#0c389c]" />
+            </button>
           </div>
 
-          {/* PREV / NEXT BUTTONS */}
-          <div className="flex items-center gap-1.5 ml-auto">
+          {/* Center: Stroke Indicator */}
+          <div className="flex items-center gap-1.5 shrink-0 text-[10px] font-black">
+            <span className="bg-[#ffd200] text-[#0b1a3d] px-2 py-0.5 rounded border border-[#0b1a3d]">
+              {strokeInfo.strokes} Goresan
+            </span>
+          </div>
+
+          {/* Right: Quick Nav */}
+          <div className="flex items-center gap-1 shrink-0 ml-auto">
             <button
               onClick={handlePrev}
               title="Huruf Sebelumnya"
-              className="retro-btn retro-btn-white p-1.5 text-xs flex items-center justify-center"
+              className="p-1 rounded border border-[#0b1a3d] bg-white hover:bg-[#f6eedf]"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5" />
             </button>
-            <span className="text-xs font-bungee text-[#0b1a3d] px-2">
-              {currentIndex + 1} / {availableItems.length}
+            <span className="text-[10px] font-bungee text-[#0b1a3d] px-1">
+              {currentIndex + 1}/{availableItems.length}
             </span>
             <button
               onClick={handleNext}
               title="Huruf Berikutnya"
-              className="retro-btn retro-btn-white p-1.5 text-xs flex items-center justify-center"
+              className="p-1 rounded border border-[#0b1a3d] bg-white hover:bg-[#f6eedf]"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={handleRandom}
-              title="Acak Huruf"
-              className="retro-btn retro-btn-yellow p-1.5 text-xs flex items-center gap-1"
+              title="Acak"
+              className="p-1 rounded border border-[#0b1a3d] bg-[#ffd200]"
             >
               <Shuffle className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline text-[10px]">ACAK</span>
             </button>
           </div>
         </div>
+
+        {/* Short tip on mobile */}
+        <div className="text-[11px] text-gray-600 font-medium leading-tight truncate">
+          💡 {strokeInfo.tips}
+        </div>
       </div>
 
-      {/* 2. MAIN WRITING WORKSPACE */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      {/* 2. MAIN 2-COLUMN LAYOUT (Studio Desktop & Clean Mobile Flow) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">
         
-        {/* LEFT COLUMN: PROMPT & STROKE TIPS CARD */}
-        <div className="lg:col-span-4 flex flex-col gap-4">
+        {/* CENTER / RIGHT COLUMN: DRAWING CANVAS & CONTROLS (Rendered FIRST on mobile for instant interaction!) */}
+        <div className="lg:col-span-8 flex flex-col items-center gap-2.5 sm:gap-3 w-full">
           
-          {/* TARGET KANA CARD */}
-          <div className="retro-card p-4 sm:p-5 bg-white flex flex-col items-center text-center relative overflow-hidden">
+          {/* TOOLBAR: SLIM, SINGLE-LINE OR WRAP */}
+          <div className="w-full retro-card p-2 sm:p-2.5 bg-white flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
+            
+            {/* Left: Ink Colors */}
+            <div className="flex items-center gap-1">
+              <span className="text-[9px] sm:text-[10px] font-black text-[#0b1a3d] uppercase hidden sm:inline mr-0.5">TINTA:</span>
+              {INK_COLORS.map(c => (
+                <button
+                  key={c.color}
+                  onClick={() => {
+                    playKeyClickSound();
+                    setInkColor(c.color);
+                  }}
+                  title={c.label}
+                  style={{ backgroundColor: c.color }}
+                  className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 transition-transform cursor-pointer ${
+                    inkColor === c.color
+                      ? 'border-[#0b1a3d] scale-110 shadow-[1px_1px_0px_#0b1a3d]'
+                      : 'border-white/60 hover:scale-105'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Center: Brush Size */}
+            <div className="flex items-center gap-0.5 bg-[#f6eedf] p-0.5 sm:p-1 rounded-lg border border-[#0b1a3d]/30">
+              {BRUSH_SIZES.map(b => (
+                <button
+                  key={b.size}
+                  onClick={() => {
+                    playKeyClickSound();
+                    setBrushSize(b.size);
+                  }}
+                  className={`px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-heading font-black rounded transition-all ${
+                    brushSize === b.size
+                      ? 'bg-[#0c389c] text-white shadow-[1px_1px_0px_#0b1a3d]'
+                      : 'text-[#0b1a3d] hover:bg-white'
+                  }`}
+                >
+                  <span className="sm:hidden">{b.short}</span>
+                  <span className="hidden sm:inline">{b.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Right: Quick Toggles (Jiplak, Grid, Auto-Pass) */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  playKeyClickSound();
+                  setTracingMode(prev => !prev);
+                }}
+                title={tracingMode ? 'Matikan bayangan jiplak' : 'Nyalakan bayangan jiplak'}
+                className={`retro-btn px-2 py-1 text-[9px] sm:text-[10px] flex items-center gap-1 ${
+                  tracingMode ? 'retro-btn-yellow' : 'retro-btn-white'
+                }`}
+              >
+                {tracingMode ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3 text-gray-400" />}
+                <span>JIPLAK: {tracingMode ? 'ON' : 'OFF'}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  playKeyClickSound();
+                  setAutoAdvance(prev => !prev);
+                }}
+                title={autoAdvance ? 'Auto-pass aktif (lanjut otomatis jika skor ≥ 70%)' : 'Auto-pass mati (manual)'}
+                className={`retro-btn px-2 py-1 text-[9px] sm:text-[10px] flex items-center gap-1 ${
+                  autoAdvance ? 'retro-btn-green' : 'retro-btn-white'
+                }`}
+              >
+                <Zap className="w-3 h-3 fill-current" />
+                <span>AUTO: {autoAdvance ? 'ON' : 'OFF'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* THE WRITING CANVAS CONTAINER */}
+          <div
+            ref={containerRef}
+            className="w-full flex justify-center items-center py-0.5 select-none"
+          >
+            <div className="relative rounded-2xl border-4 border-[#0b1a3d] bg-[#fbf9f4] shadow-[5px_5px_0px_#0b1a3d] overflow-hidden max-w-[340px] sm:max-w-[380px] w-full aspect-square mx-auto">
+              <canvas
+                ref={canvasRef}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerCancel}
+                className="cursor-crosshair block touch-none w-full h-full"
+                style={{ touchAction: 'none' }}
+              />
+
+              {/* Floating Peek Hint Button on Canvas (Top Left) */}
+              <div className="absolute top-2 left-2 z-10">
+                <button
+                  onClick={handlePeek}
+                  disabled={isPeeking || evaluation !== null}
+                  title="Intip bentuk huruf"
+                  className="px-2 py-1 rounded-lg bg-white/95 hover:bg-[#ffd200] border-2 border-[#0b1a3d] text-[#0b1a3d] text-[10px] font-heading font-black shadow-[2px_2px_0px_#0b1a3d] flex items-center gap-1 cursor-pointer"
+                >
+                  <Eye className="w-3.5 h-3.5 text-[#0c389c]" />
+                  <span>INTIP</span>
+                </button>
+              </div>
+
+              {/* Floating Undo & Clear overlay buttons (Top Right) */}
+              <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
+                <button
+                  onClick={handleUndo}
+                  disabled={strokes.length === 0}
+                  title="Batalkan Coretan Terakhir (Ctrl+Z)"
+                  className="p-1.5 sm:p-2 rounded-xl bg-white hover:bg-[#ffd200] border-2 border-[#0b1a3d] text-[#0b1a3d] shadow-[2px_2px_0px_#0b1a3d] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+                <button
+                  onClick={handleClear}
+                  disabled={strokes.length === 0}
+                  title="Hapus Semua Coretan (C)"
+                  className="p-1.5 sm:p-2 rounded-xl bg-white hover:bg-[#d9261c] hover:text-white border-2 border-[#0b1a3d] text-[#0b1a3d] shadow-[2px_2px_0px_#0b1a3d] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+              </div>
+
+              {/* In-Canvas Stroke Count Indicator (Bottom Left) */}
+              <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
+                <span className="bg-[#0b1a3d]/85 text-white font-bungee text-[10px] px-2 py-0.5 rounded-md border border-white/20">
+                  CORETAN: {strokes.length} / {strokeInfo.strokes}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. EVALUATION RESULTS & ACTION BUTTONS */}
+          <div className="w-full max-w-[340px] sm:max-w-lg">
+            {!evaluation ? (
+              /* Pre-evaluation: BIG THUMB-FRIENDLY CHECK ANSWER BUTTON */
+              <div className="flex items-center gap-2 w-full">
+                <button
+                  onClick={handleEvaluate}
+                  disabled={strokes.length === 0}
+                  className="flex-1 retro-btn retro-btn-yellow py-3 text-xs sm:text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-[3px_3px_0px_#0b1a3d]"
+                >
+                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                  <span>PERIKSA HASIL TULISAN (ENTER)</span>
+                </button>
+
+                <button
+                  onClick={handleNext}
+                  title="Lewati ke huruf berikutnya"
+                  className="retro-btn retro-btn-white py-3 px-3 sm:px-4 text-xs font-bold"
+                >
+                  LEWATI ➔
+                </button>
+              </div>
+            ) : (
+              /* Post-evaluation: SCORE CARD & ACTIONS */
+              <div className="retro-card p-3 sm:p-4 bg-white space-y-2.5 animate-retro-pop">
+                
+                {/* Result Headline */}
+                <div className="flex items-center justify-between pb-2 border-b-2 border-[#0b1a3d]/20">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {evaluation.score >= PASS_THRESHOLD ? (
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#10b981] text-white flex items-center justify-center border-2 border-[#0b1a3d] shrink-0">
+                        <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
+                      </div>
+                    ) : (
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#d9261c] text-white flex items-center justify-center border-2 border-[#0b1a3d] shrink-0">
+                        <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </div>
+                    )}
+                    <div className="min-w-0 truncate">
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="font-bungee text-sm sm:text-base text-[#0b1a3d] leading-none truncate">
+                          {evaluation.feedbackTitle}
+                        </h4>
+                        <span className={`text-[9px] font-bungee px-1.5 py-0.5 rounded border shrink-0 ${
+                          evaluation.score >= PASS_THRESHOLD
+                            ? 'bg-[#d1fae5] text-[#047857] border-[#047857]'
+                            : 'bg-[#ffe4e6] text-[#b91c1c] border-[#b91c1c]'
+                        }`}>
+                          {evaluation.score >= PASS_THRESHOLD ? '✓ LULUS' : 'BELUM LULUS'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-bold text-gray-500 mt-0.5 truncate">
+                        {evaluation.feedbackMessage}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Score pill */}
+                  <div className="text-right shrink-0 ml-2">
+                    <span className="font-bungee text-2xl sm:text-3xl text-[#0c389c] leading-none">
+                      {evaluation.score}%
+                    </span>
+                    <div className="text-[8px] font-black text-gray-400 uppercase">AKURASI</div>
+                  </div>
+                </div>
+
+                {/* Auto-advance notification banner */}
+                {isAutoAdvancing && (
+                  <div className="bg-[#d1fae5] border-2 border-[#047857] text-[#065f46] p-2 rounded-xl font-heading font-black text-xs flex items-center justify-between animate-pulse">
+                    <div className="flex items-center gap-1.5 text-[11px] min-w-0">
+                      <Sparkles className="w-3.5 h-3.5 text-[#059669] fill-current shrink-0" />
+                      <span className="truncate">Akurasi ≥ {PASS_THRESHOLD}%! Lanjut otomatis...</span>
+                    </div>
+                    <button
+                      onClick={handleNext}
+                      className="bg-[#059669] hover:bg-[#047857] text-white px-2 py-0.5 rounded-lg text-[10px] font-bungee cursor-pointer shrink-0"
+                    >
+                      LANJUT ➔
+                    </button>
+                  </div>
+                )}
+
+                {/* Accuracy details */}
+                <div className="grid grid-cols-2 gap-1.5 text-center text-[11px] font-bold">
+                  <div className="bg-[#f6eedf] p-1.5 rounded-lg border border-[#0b1a3d]/20">
+                    <span className="text-[9px] text-gray-500 uppercase block">Jumlah Coretan</span>
+                    <span className={evaluation.strokeCountMatch ? 'text-[#059669]' : 'text-[#d9261c]'}>
+                      {evaluation.userStrokesCount} dari {evaluation.expectedStrokes} {evaluation.strokeCountMatch ? '✓' : ''}
+                    </span>
+                  </div>
+                  <div className="bg-[#f6eedf] p-1.5 rounded-lg border border-[#0b1a3d]/20">
+                    <span className="text-[9px] text-gray-500 uppercase block">Cakupan Bentuk</span>
+                    <span className="text-[#0c389c]">
+                      {evaluation.coveragePercent}% pas di bidang
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  {evaluation.score >= PASS_THRESHOLD ? (
+                    <button
+                      onClick={handleConfirmCorrect}
+                      className="flex-1 retro-btn retro-btn-green py-2 sm:py-2.5 text-xs sm:text-sm flex items-center justify-center gap-1.5"
+                    >
+                      <Sparkles className="w-4 h-4 fill-current" />
+                      <span>{isAutoAdvancing ? 'LANJUT SEKARANG ➔' : 'BENAR & LANJUT ➔'}</span>
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleRetryCurrent}
+                        className="flex-1 retro-btn retro-btn-yellow py-2 sm:py-2.5 px-3 text-xs sm:text-sm flex items-center justify-center gap-1.5"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>ULANGI LAGI</span>
+                      </button>
+
+                      <button
+                        onClick={handleConfirmCorrect}
+                        title="Tetap anggap benar jika menurutmu sudah cukup mirip"
+                        className="retro-btn retro-btn-white py-2 sm:py-2.5 px-2.5 text-xs text-[#059669] border-[#059669] hover:bg-[#d1fae5]"
+                      >
+                        LULUSKAN ➔
+                      </button>
+                    </>
+                  )}
+
+                  {evaluation.score >= PASS_THRESHOLD && (
+                    <button
+                      onClick={handleRetryCurrent}
+                      className="retro-btn retro-btn-yellow py-2 sm:py-2.5 px-3 text-xs flex items-center justify-center gap-1"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>ULANGI</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={handleNext}
+                    className="retro-btn retro-btn-white py-2 sm:py-2.5 px-3 text-xs"
+                  >
+                    LEWATI
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* LEFT / BOTTOM COLUMN: PROMPT DETAILS & SETTINGS (At Bottom on Mobile, Left on Desktop) */}
+        <div className="lg:col-span-4 flex flex-col gap-3 sm:gap-4 order-last lg:order-first w-full">
+          
+          {/* DESKTOP TARGET KANA PROMPT CARD (Hidden on mobile because mobile uses the top compact strip) */}
+          <div className="hidden lg:flex retro-card p-4 sm:p-5 bg-white flex-col items-center text-center relative overflow-hidden">
             <div className="inline-block bg-[#ffd200] text-[#0b1a3d] font-bungee text-[10px] px-2.5 py-0.5 rounded border border-[#0b1a3d] mb-2 shadow-[2px_2px_0px_#0b1a3d]">
               TARGET WRITING • {activeScript.toUpperCase()}
             </div>
@@ -668,42 +925,54 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
               </div>
             </div>
 
-            {/* QUICK PEEK BUTTON */}
-            <div className="w-full mt-3">
+            {/* DESKTOP NAVIGATION */}
+            <div className="w-full flex items-center justify-between gap-1.5 mt-3 pt-3 border-t border-[#0b1a3d]/15">
               <button
-                onClick={handlePeek}
-                disabled={isPeeking || evaluation !== null}
-                className="w-full retro-btn retro-btn-white py-2 text-xs flex items-center justify-center gap-1.5"
+                onClick={handlePrev}
+                title="Huruf Sebelumnya"
+                className="retro-btn retro-btn-white p-1.5 text-xs flex items-center justify-center"
               >
-                <Eye className="w-4 h-4 text-[#0c389c]" />
-                <span>INTIP BENTUK HURUF (HINT)</span>
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-xs font-bungee text-[#0b1a3d] px-1">
+                {currentIndex + 1} / {availableItems.length}
+              </span>
+              <button
+                onClick={handleNext}
+                title="Huruf Berikutnya"
+                className="retro-btn retro-btn-white p-1.5 text-xs flex items-center justify-center"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleRandom}
+                title="Acak Huruf"
+                className="retro-btn retro-btn-yellow p-1.5 text-xs flex items-center gap-1"
+              >
+                <Shuffle className="w-3.5 h-3.5" />
+                <span className="text-[10px]">ACAK</span>
               </button>
             </div>
           </div>
 
-          {/* STROKE ORDER INSTRUCTIONS */}
-          <div className="retro-card p-4 bg-white flex-1 flex flex-col">
+          {/* STROKE ORDER INSTRUCTIONS ACCORDION */}
+          <div className="retro-card p-3 sm:p-4 bg-white flex flex-col">
             <button
               onClick={() => setShowStrokeGuide(prev => !prev)}
-              className="w-full flex items-center justify-between font-bungee text-xs text-[#0b1a3d] pb-2 border-b-2 border-[#0b1a3d]/20 cursor-pointer"
+              className="w-full flex items-center justify-between font-bungee text-xs text-[#0b1a3d] pb-1.5 border-b-2 border-[#0b1a3d]/20 cursor-pointer"
             >
               <div className="flex items-center gap-1.5">
                 <Lightbulb className="w-4 h-4 text-[#ffd200] fill-[#ffd200]" />
-                <span>PANDUAN URUTAN CORETAN</span>
+                <span>PANDUAN CORETAN ({strokeInfo.strokes} LANGKAH)</span>
               </div>
               <span className="text-[10px] text-[#0c389c] font-black">
-                {showStrokeGuide ? 'SEMBUNYIKAN ▲' : 'LIHAT LANGKAH ▼'}
+                {showStrokeGuide ? 'TUTUP ▲' : 'BUKA ▼'}
               </span>
             </button>
 
-            {/* Short summary always visible */}
-            <p className="text-xs font-heading font-medium text-gray-700 mt-2.5 leading-snug">
-              {strokeInfo.tips}
-            </p>
-
-            {/* Expandable step-by-step */}
-            {showStrokeGuide && (
-              <div className="mt-3 space-y-2 max-h-56 overflow-y-auto pr-1">
+            {/* Step-by-step guidance list */}
+            {showStrokeGuide ? (
+              <div className="mt-2.5 space-y-1.5 max-h-56 overflow-y-auto pr-1">
                 {strokeInfo.steps.map((step, idx) => (
                   <div
                     key={idx}
@@ -716,300 +985,69 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* CENTER / RIGHT COLUMN: DRAWING CANVAS & CONTROLS */}
-        <div className="lg:col-span-8 flex flex-col items-center gap-3">
-          
-          {/* TOOLBAR: BRUSH SIZE, INK COLOR, TOGGLES */}
-          <div className="w-full retro-card p-2.5 sm:p-3 bg-white flex flex-wrap items-center justify-between gap-2">
-            
-            {/* Ink Color Picker */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-black text-[#0b1a3d] uppercase hidden sm:inline">TINTA:</span>
-              <div className="flex items-center gap-1">
-                {INK_COLORS.map(c => (
-                  <button
-                    key={c.color}
-                    onClick={() => {
-                      playKeyClickSound();
-                      setInkColor(c.color);
-                    }}
-                    title={c.label}
-                    style={{ backgroundColor: c.color }}
-                    className={`w-6 h-6 rounded-full border-2 transition-transform cursor-pointer ${
-                      inkColor === c.color
-                        ? 'border-[#0b1a3d] scale-110 shadow-[2px_2px_0px_#0b1a3d]'
-                        : 'border-white/50 hover:scale-105'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Brush Size Picker */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-black text-[#0b1a3d] uppercase hidden sm:inline">UKURAN:</span>
-              <div className="flex items-center gap-1 bg-[#f6eedf] p-1 rounded-lg border border-[#0b1a3d]/30">
-                {BRUSH_SIZES.map(b => (
-                  <button
-                    key={b.size}
-                    onClick={() => {
-                      playKeyClickSound();
-                      setBrushSize(b.size);
-                    }}
-                    className={`px-2 py-0.5 text-[10px] font-heading font-black rounded transition-all ${
-                      brushSize === b.size
-                        ? 'bg-[#0c389c] text-white shadow-[1px_1px_0px_#0b1a3d]'
-                        : 'text-[#0b1a3d] hover:bg-white'
-                    }`}
-                  >
-                    {b.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Guide & Grid Toggles */}
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => {
-                  playKeyClickSound();
-                  setTracingMode(prev => !prev);
-                }}
-                title={tracingMode ? 'Matikan bayangan jiplak' : 'Nyalakan bayangan jiplak'}
-                className={`retro-btn px-2.5 py-1 text-[10px] flex items-center gap-1 ${
-                  tracingMode ? 'retro-btn-yellow' : 'retro-btn-white'
-                }`}
-              >
-                {tracingMode ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 text-gray-400" />}
-                <span>JIPLAK: {tracingMode ? 'ON' : 'OFF'}</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  playKeyClickSound();
-                  setShowGrid(prev => !prev);
-                }}
-                title={showGrid ? 'Sembunyikan garis kotak' : 'Tampilkan garis kotak'}
-                className={`retro-btn px-2.5 py-1 text-[10px] flex items-center gap-1 ${
-                  showGrid ? 'retro-btn-yellow' : 'retro-btn-white'
-                }`}
-              >
-                <Grid className="w-3.5 h-3.5" />
-                <span>GRID: {showGrid ? 'ON' : 'OFF'}</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  playKeyClickSound();
-                  setAutoAdvance(prev => !prev);
-                }}
-                title={autoAdvance ? 'Auto-pass aktif (lanjut otomatis jika skor ≥ 70%)' : 'Auto-pass mati (manual)'}
-                className={`retro-btn px-2.5 py-1 text-[10px] flex items-center gap-1 ${
-                  autoAdvance ? 'retro-btn-green' : 'retro-btn-white'
-                }`}
-              >
-                <Zap className="w-3.5 h-3.5 fill-current" />
-                <span>AUTO-PASS: {autoAdvance ? 'ON (≥70%)' : 'OFF'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* THE WRITING CANVAS CONTAINER */}
-          <div
-            ref={containerRef}
-            className="w-full flex justify-center items-center py-1 select-none"
-          >
-            <div className="relative rounded-2xl border-4 border-[#0b1a3d] bg-[#fbf9f4] shadow-[6px_6px_0px_#0b1a3d] overflow-hidden">
-              <canvas
-                ref={canvasRef}
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerCancel}
-                className="cursor-crosshair block touch-none"
-                style={{ touchAction: 'none' }}
-              />
-
-              {/* Floating Undo & Clear overlay buttons */}
-              <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
-                <button
-                  onClick={handleUndo}
-                  disabled={strokes.length === 0}
-                  title="Batalkan Coretan Terakhir (Ctrl+Z)"
-                  className="p-2 rounded-xl bg-white hover:bg-[#ffd200] border-2 border-[#0b1a3d] text-[#0b1a3d] shadow-[2px_2px_0px_#0b1a3d] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handleClear}
-                  disabled={strokes.length === 0}
-                  title="Hapus Semua Coretan (C)"
-                  className="p-2 rounded-xl bg-white hover:bg-[#d9261c] hover:text-white border-2 border-[#0b1a3d] text-[#0b1a3d] shadow-[2px_2px_0px_#0b1a3d] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* In-Canvas Stroke Count Indicator */}
-              <div className="absolute bottom-2.5 left-2.5 z-10 pointer-events-none">
-                <span className="bg-[#0b1a3d]/80 text-white font-bungee text-[10px] px-2 py-1 rounded-md border border-white/20">
-                  STROKE: {strokes.length} / {strokeInfo.strokes}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. EVALUATION RESULTS & ACTION BUTTONS */}
-          <div className="w-full max-w-lg">
-            {!evaluation ? (
-              /* Pre-evaluation: CHECK ANSWER BUTTON */
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleEvaluate}
-                  disabled={strokes.length === 0}
-                  className="flex-1 retro-btn retro-btn-yellow py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <CheckCircle2 className="w-5 h-5 fill-current" />
-                  <span>PERIKSA HASIL TULISAN (ENTER)</span>
-                </button>
-
-                <button
-                  onClick={handleNext}
-                  title="Lewati ke huruf berikutnya"
-                  className="retro-btn retro-btn-white py-3 px-4 text-xs font-bold"
-                >
-                  LEWATI ➔
-                </button>
-              </div>
             ) : (
-              /* Post-evaluation: SCORE CARD & ACTIONS */
-              <div className="retro-card p-4 bg-white space-y-3 animate-retro-pop">
-                
-                {/* Result Headline */}
-                <div className="flex items-center justify-between pb-2 border-b-2 border-[#0b1a3d]/20">
-                  <div className="flex items-center gap-2">
-                    {evaluation.score >= PASS_THRESHOLD ? (
-                      <div className="w-8 h-8 rounded-full bg-[#10b981] text-white flex items-center justify-center border-2 border-[#0b1a3d]">
-                        <Check className="w-5 h-5 stroke-[3]" />
-                      </div>
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-[#d9261c] text-white flex items-center justify-center border-2 border-[#0b1a3d]">
-                        <AlertTriangle className="w-5 h-5" />
-                      </div>
-                    )}
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <h4 className="font-bungee text-base sm:text-lg text-[#0b1a3d] leading-none">
-                          {evaluation.feedbackTitle}
-                        </h4>
-                        <span className={`text-[10px] font-bungee px-1.5 py-0.5 rounded border ${
-                          evaluation.score >= PASS_THRESHOLD
-                            ? 'bg-[#d1fae5] text-[#047857] border-[#047857]'
-                            : 'bg-[#ffe4e6] text-[#b91c1c] border-[#b91c1c]'
-                        }`}>
-                          {evaluation.score >= PASS_THRESHOLD ? '✓ LULUS' : 'BELUM LULUS'}
-                        </span>
-                      </div>
-                      <p className="text-xs font-bold text-gray-500 mt-0.5">
-                        {evaluation.feedbackMessage}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Score pill */}
-                  <div className="text-right">
-                    <span className="font-bungee text-2xl sm:text-3xl text-[#0c389c] leading-none">
-                      {evaluation.score}%
-                    </span>
-                    <div className="text-[9px] font-black text-gray-400 uppercase">AKURASI</div>
-                  </div>
-                </div>
-
-                {/* Auto-advance notification banner */}
-                {isAutoAdvancing && (
-                  <div className="bg-[#d1fae5] border-2 border-[#047857] text-[#065f46] p-2.5 rounded-xl font-heading font-black text-xs flex items-center justify-between animate-pulse">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-[#059669] fill-current" />
-                      <span>Akurasi ≥ {PASS_THRESHOLD}%! Lulus otomatis, lanjut ke huruf berikutnya...</span>
-                    </div>
-                    <button
-                      onClick={handleNext}
-                      className="bg-[#059669] hover:bg-[#047857] text-white px-2.5 py-1 rounded-lg text-[10px] font-bungee cursor-pointer"
-                    >
-                      LANJUT ➔
-                    </button>
-                  </div>
-                )}
-
-                {/* Accuracy details */}
-                <div className="grid grid-cols-2 gap-2 text-center text-xs font-bold">
-                  <div className="bg-[#f6eedf] p-2 rounded-lg border border-[#0b1a3d]/20">
-                    <span className="text-[10px] text-gray-500 uppercase block">Jumlah Coretan</span>
-                    <span className={evaluation.strokeCountMatch ? 'text-[#059669]' : 'text-[#d9261c]'}>
-                      {evaluation.userStrokesCount} dari {evaluation.expectedStrokes} standar {evaluation.strokeCountMatch ? '✓' : ''}
-                    </span>
-                  </div>
-                  <div className="bg-[#f6eedf] p-2 rounded-lg border border-[#0b1a3d]/20">
-                    <span className="text-[10px] text-gray-500 uppercase block">Cakupan Bentuk</span>
-                    <span className="text-[#0c389c]">
-                      {evaluation.coveragePercent}% pas di bidang
-                    </span>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
-                  {evaluation.score >= PASS_THRESHOLD ? (
-                    <button
-                      onClick={handleConfirmCorrect}
-                      className="w-full sm:flex-1 retro-btn retro-btn-green py-2.5 text-xs sm:text-sm flex items-center justify-center gap-2"
-                    >
-                      <Sparkles className="w-4 h-4 fill-current" />
-                      <span>{isAutoAdvancing ? 'LANJUT SEKARANG ➔ (ENTER)' : 'BENAR & LANJUT ➔ (ENTER)'}</span>
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        onClick={handleRetryCurrent}
-                        className="w-full sm:flex-1 retro-btn retro-btn-yellow py-2.5 px-4 text-xs sm:text-sm flex items-center justify-center gap-1.5"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                        <span>ULANGI LAGI</span>
-                      </button>
-
-                      <button
-                        onClick={handleConfirmCorrect}
-                        title="Tetap anggap benar jika menurutmu sudah cukup mirip"
-                        className="w-full sm:w-auto retro-btn retro-btn-white py-2.5 px-3 text-xs text-[#059669] border-[#059669] hover:bg-[#d1fae5]"
-                      >
-                        TETAP LULUSKAN ➔
-                      </button>
-                    </>
-                  )}
-
-                  {evaluation.score >= PASS_THRESHOLD && (
-                    <button
-                      onClick={handleRetryCurrent}
-                      className="w-full sm:w-auto retro-btn retro-btn-yellow py-2.5 px-4 text-xs flex items-center justify-center gap-1.5"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      <span>ULANGI LAGI</span>
-                    </button>
-                  )}
-
-                  <button
-                    onClick={handleNext}
-                    className="w-full sm:w-auto retro-btn retro-btn-white py-2.5 px-3 text-xs"
-                  >
-                    LEWATI
-                  </button>
-                </div>
-              </div>
+              <p className="text-xs font-heading font-medium text-gray-700 mt-2 leading-snug">
+                {strokeInfo.tips}
+              </p>
             )}
+          </div>
+
+          {/* SCRIPT & ROW FILTER SETTINGS CARD */}
+          <div className="retro-card p-3 sm:p-4 bg-white space-y-3">
+            <div className="flex items-center justify-between pb-1.5 border-b-2 border-[#0b1a3d]/20">
+              <div className="flex items-center gap-1.5 font-bungee text-xs text-[#0b1a3d]">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-[#0c389c]" />
+                <span>PENGATURAN KANA</span>
+              </div>
+            </div>
+
+            {/* Script selector */}
+            <div>
+              <label className="text-[10px] font-black text-[#0c389c] uppercase block mb-1">
+                HURUF (SCRIPT):
+              </label>
+              <div className="grid grid-cols-3 gap-1">
+                {(['hiragana', 'katakana', 'mixed'] as KanaScript[]).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => {
+                      playKeyClickSound();
+                      onSelectScript(s);
+                    }}
+                    className={`py-1.5 px-1 text-xs font-heading font-black rounded-lg transition-all uppercase ${
+                      script === s
+                        ? 'bg-[#0c389c] text-white shadow-[1px_1px_0px_#0b1a3d]'
+                        : 'bg-[#f6eedf] text-[#0b1a3d] hover:bg-white'
+                    }`}
+                  >
+                    {s === 'hiragana' ? 'ひらがな' : s === 'katakana' ? 'カタカナ' : 'Campur'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Row selector */}
+            <div>
+              <label className="text-[10px] font-black text-[#0c389c] uppercase block mb-1">
+                PILIH BARIS:
+              </label>
+              <select
+                value={selectedRowId}
+                onChange={e => {
+                  playKeyClickSound();
+                  setSelectedRowId(e.target.value);
+                  setCurrentIndex(0);
+                }}
+                className="w-full bg-[#f6eedf] border-2 border-[#0b1a3d] text-xs font-bold text-[#0b1a3d] rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#ffd200]"
+              >
+                <option value="all">Semua Baris (Gojuon)</option>
+                {KANA_ROWS.map(row => (
+                  <option key={row.id} value={row.id}>
+                    {row.name} ({row.label})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
