@@ -144,10 +144,16 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
+    const rect = canvas.getBoundingClientRect();
+    const width = rect.width || 340;
+    const height = rect.height || 340;
+    const dpr = window.devicePixelRatio || 1;
 
-    // Clear background
+    ctx.save();
+    // Explicitly set the matrix to DPR scale to prevent compounding scales
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Clear background in logical dimensions
     ctx.clearRect(0, 0, width, height);
 
     // 1. Draw Japanese Calligraphy Practice Grid (田 pattern)
@@ -195,9 +201,9 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
       ctx.fillStyle = isPeeking ? 'rgba(12, 56, 156, 0.45)' : 'rgba(11, 26, 61, 0.14)';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const fontSize = Math.round(width * 0.72);
-      ctx.font = `900 ${fontSize}px "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif`;
-      ctx.fillText(targetChar, width / 2, height / 2 + height * 0.035);
+      const fontSize = Math.round(width * 0.65);
+      ctx.font = `bold ${fontSize}px "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif`;
+      ctx.fillText(targetChar, width / 2, height / 2);
       ctx.restore();
     }
 
@@ -238,19 +244,21 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
     // 4. Draw Overlay in Evaluation Mode (shows reference outline over user drawing)
     if (evaluation) {
       ctx.save();
-      ctx.fillStyle = evaluation.score >= PASS_THRESHOLD ? 'rgba(16, 185, 129, 0.28)' : 'rgba(217, 38, 28, 0.25)';
+      ctx.fillStyle = evaluation.score >= PASS_THRESHOLD ? 'rgba(16, 185, 129, 0.22)' : 'rgba(217, 38, 28, 0.20)';
       ctx.strokeStyle = evaluation.score >= PASS_THRESHOLD ? '#10b981' : '#d9261c';
       ctx.lineWidth = 2.5;
       ctx.setLineDash([4, 4]);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const fontSize = Math.round(width * 0.72);
-      ctx.font = `900 ${fontSize}px "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif`;
-      ctx.fillText(targetChar, width / 2, height / 2 + height * 0.035);
-      ctx.strokeText(targetChar, width / 2, height / 2 + height * 0.035);
+      const fontSize = Math.round(width * 0.65);
+      ctx.font = `bold ${fontSize}px "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif`;
+      ctx.fillText(targetChar, width / 2, height / 2);
+      ctx.strokeText(targetChar, width / 2, height / 2);
       ctx.restore();
     }
-  }, [showGrid, tracingMode, isPeeking, evaluation, targetChar, inkColor, brushSize, strokes, currentStroke]);
+
+    ctx.restore();
+  }, [showGrid, tracingMode, isPeeking, evaluation, targetChar, inkColor, brushSize, strokes, currentStroke, PASS_THRESHOLD]);
 
   // Handle Canvas Resizing with DevicePixelRatio
   const updateCanvasDimensions = useCallback(() => {
@@ -259,21 +267,16 @@ export const WritingTrainer: React.FC<WritingTrainerProps> = ({
     if (!canvas || !container) return;
 
     const rect = container.getBoundingClientRect();
-    // Compact size calculation: ensure it fits mobile screens with margin
     const availableWidth = rect.width ? Math.floor(rect.width) : 340;
-    const size = Math.min(Math.max(280, availableWidth), 380);
+    const size = Math.min(Math.max(260, availableWidth), 380);
     if (size <= 0) return;
 
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = size * dpr;
-    canvas.height = size * dpr;
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
     canvas.style.width = `${size}px`;
     canvas.style.height = `${size}px`;
 
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.scale(dpr, dpr);
-    }
     redrawCanvas();
   }, [redrawCanvas]);
 

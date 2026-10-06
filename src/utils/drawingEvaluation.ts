@@ -22,7 +22,7 @@ export interface EvaluationResult {
 
 /**
  * Evaluates user drawn strokes against the authentic target kana character.
- * Uses off-screen rasterization with dilation tolerance & IoU shape matching.
+ * Uses center-aligned rasterization with human-friendly dilation tolerance.
  */
 export function evaluateKanaDrawing(
   strokes: Stroke[],
@@ -35,7 +35,7 @@ export function evaluateKanaDrawing(
   const userStrokesCount = strokes.length;
   const strokeCountMatch = userStrokesCount === expectedStrokes;
 
-  // Empty check
+  // 1. Empty or minimal check
   if (strokes.length === 0 || strokes.every(s => s.length === 0)) {
     return {
       score: 0,
@@ -51,60 +51,59 @@ export function evaluateKanaDrawing(
     };
   }
 
-  // Ensure window & canvas are available
-  if (typeof document === 'undefined') {
+  // Count total points drawn
+  let totalPoints = 0;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const s of strokes) {
+    for (const p of s) {
+      totalPoints++;
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+  }
+
+  const userWidth = maxX - minX;
+  const userHeight = maxY - minY;
+
+  // Scribble or dot check
+  if (totalPoints < 4 || userWidth < 20 || userHeight < 20) {
     return {
-      score: 80,
-      stars: 3,
-      rating: 'great',
-      feedbackTitle: 'Bagus!',
-      feedbackMessage: 'Latihan menulis selesai.',
-      strokeCountMatch,
+      score: 15,
+      stars: 1,
+      rating: 'retry',
+      feedbackTitle: 'Coretan Terlalu Sedikit',
+      feedbackMessage: 'Coretan belum cukup untuk membentuk huruf. Coba tulis lebih jelas!',
+      strokeCountMatch: false,
       userStrokesCount,
       expectedStrokes,
-      coveragePercent: 80,
-      precisionPercent: 80,
+      coveragePercent: 10,
+      precisionPercent: 15,
     };
   }
 
-  const RESOLUTION = 100; // 100x100 analysis grid (10,000 pixels)
-  const scaleX = RESOLUTION / canvasWidth;
-  const scaleY = RESOLUTION / canvasHeight;
-
-  // 1. Render User Drawing on Offscreen Canvas A
-  const canvasUser = document.createElement('canvas');
-  canvasUser.width = RESOLUTION;
-  canvasUser.height = RESOLUTION;
-  const ctxUser = canvasUser.getContext('2d', { willReadFrequently: true });
-
-  if (ctxUser) {
-    ctxUser.clearRect(0, 0, RESOLUTION, RESOLUTION);
-    ctxUser.lineCap = 'round';
-    ctxUser.lineJoin = 'round';
-    ctxUser.lineWidth = Math.max(5, Math.round(RESOLUTION * 0.07));
-    ctxUser.strokeStyle = '#000000';
-
-    for (const stroke of strokes) {
-      if (stroke.length === 0) continue;
-      if (stroke.length === 1) {
-        ctxUser.beginPath();
-        ctxUser.arc(stroke[0].x * scaleX, stroke[0].y * scaleY, ctxUser.lineWidth / 2, 0, Math.PI * 2);
-        ctxUser.fillStyle = '#000000';
-        ctxUser.fill();
-      } else {
-        ctxUser.beginPath();
-        ctxUser.moveTo(stroke[0].x * scaleX, stroke[0].y * scaleY);
-        for (let i = 1; i < stroke.length - 1; i++) {
-          const xc = ((stroke[i].x + stroke[i + 1].x) / 2) * scaleX;
-          const yc = ((stroke[i].y + stroke[i + 1].y) / 2) * scaleY;
-          ctxUser.quadraticCurveTo(stroke[i].x * scaleX, stroke[i].y * scaleY, xc, yc);
-        }
-        const last = stroke[stroke.length - 1];
-        ctxUser.lineTo(last.x * scaleX, last.y * scaleY);
-        ctxUser.stroke();
-      }
-    }
+  // Fallback for SSR
+  if (typeof document === 'undefined') {
+    return {
+      score: 85,
+      stars: 3,
+      rating: 'perfect',
+      feedbackTitle: 'Bagus!',
+      feedbackMessage: 'Latihan menulis selesai.',
+      strokeCountMatch: true,
+      userStrokesCount,
+      expectedStrokes,
+      coveragePercent: 85,
+      precisionPercent: 85,
+    };
   }
+
+  const RESOLUTION = 100; // 100x100 analysis grid
 
   // 2. Render Reference Target Character on Offscreen Canvas B
   const canvasRef = document.createElement('canvas');
@@ -117,52 +116,104 @@ export function evaluateKanaDrawing(
     ctxRef.fillStyle = '#000000';
     ctxRef.textAlign = 'center';
     ctxRef.textBaseline = 'middle';
-    ctxRef.font = `bold ${Math.round(RESOLUTION * 0.72)}px "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif`;
-    ctxRef.fillText(targetChar, RESOLUTION / 2, RESOLUTION / 2 + RESOLUTION * 0.03);
+    ctxRef.font = `bold 68px "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif`;
+    ctxRef.fillText(targetChar, RESOLUTION / 2, RESOLUTION / 2);
   }
 
-  // 3. Pixel Analysis
-  let userPixelCount = 0;
+  // Find reference kana bounding box
+  let refMinX = RESOLUTION;
+  let refMinY = RESOLUTION;
+  let refMaxX = 0;
+  let refMaxY = 0;
   let refPixelCount = 0;
-  const userPixels = new Uint8Array(RESOLUTION * RESOLUTION);
   const refPixels = new Uint8Array(RESOLUTION * RESOLUTION);
 
-  if (ctxUser && ctxRef) {
-    const userImgData = ctxUser.getImageData(0, 0, RESOLUTION, RESOLUTION).data;
-    const refImgData = ctxRef.getImageData(0, 0, RESOLUTION, RESOLUTION).data;
-
-    for (let i = 0; i < RESOLUTION * RESOLUTION; i++) {
-      const alphaUser = userImgData[i * 4 + 3];
-      const alphaRef = refImgData[i * 4 + 3];
-
-      if (alphaUser > 30) {
-        userPixels[i] = 1;
-        userPixelCount++;
-      }
-      if (alphaRef > 30) {
-        refPixels[i] = 1;
-        refPixelCount++;
+  if (ctxRef) {
+    const refData = ctxRef.getImageData(0, 0, RESOLUTION, RESOLUTION).data;
+    for (let y = 0; y < RESOLUTION; y++) {
+      for (let x = 0; x < RESOLUTION; x++) {
+        const idx = (y * RESOLUTION + x) * 4 + 3;
+        if (refData[idx] > 30) {
+          refPixels[y * RESOLUTION + x] = 1;
+          refPixelCount++;
+          if (x < refMinX) refMinX = x;
+          if (x > refMaxX) refMaxX = x;
+          if (y < refMinY) refMinY = y;
+          if (y > refMaxY) refMaxY = y;
+        }
       }
     }
   }
 
-  if (userPixelCount < 15 || refPixelCount < 15) {
-    return {
-      score: 15,
-      stars: 1,
-      rating: 'retry',
-      feedbackTitle: 'Coretan Terlalu Sedikit',
-      feedbackMessage: 'Coretan belum cukup untuk membentuk huruf. Coba lagi!',
-      strokeCountMatch,
-      userStrokesCount,
-      expectedStrokes,
-      coveragePercent: 10,
-      precisionPercent: 10,
-    };
+  // 3. Render User Drawing Normalized & Centered
+  // Align user drawing center with canvas center to compensate for slight handwriting offsets
+  const userCenterX = (minX + maxX) / 2;
+  const userCenterY = (minY + maxY) / 2;
+  const canvasCenterX = canvasWidth / 2;
+  const canvasCenterY = canvasHeight / 2;
+
+  // Subtle center correction: shift up to 60% towards center so natural offsets don't penalize
+  const offsetX = (canvasCenterX - userCenterX) * 0.6;
+  const offsetY = (canvasCenterY - userCenterY) * 0.6;
+
+  const scaleX = RESOLUTION / canvasWidth;
+  const scaleY = RESOLUTION / canvasHeight;
+
+  const canvasUser = document.createElement('canvas');
+  canvasUser.width = RESOLUTION;
+  canvasUser.height = RESOLUTION;
+  const ctxUser = canvasUser.getContext('2d', { willReadFrequently: true });
+
+  if (ctxUser) {
+    ctxUser.clearRect(0, 0, RESOLUTION, RESOLUTION);
+    ctxUser.lineCap = 'round';
+    ctxUser.lineJoin = 'round';
+    ctxUser.lineWidth = 7;
+    ctxUser.strokeStyle = '#000000';
+
+    for (const stroke of strokes) {
+      if (stroke.length === 0) continue;
+      if (stroke.length === 1) {
+        ctxUser.beginPath();
+        const px = (stroke[0].x + offsetX) * scaleX;
+        const py = (stroke[0].y + offsetY) * scaleY;
+        ctxUser.arc(px, py, 3.5, 0, Math.PI * 2);
+        ctxUser.fillStyle = '#000000';
+        ctxUser.fill();
+      } else {
+        ctxUser.beginPath();
+        const startX = (stroke[0].x + offsetX) * scaleX;
+        const startY = (stroke[0].y + offsetY) * scaleY;
+        ctxUser.moveTo(startX, startY);
+        for (let i = 1; i < stroke.length - 1; i++) {
+          const xc = (((stroke[i].x + stroke[i + 1].x) / 2) + offsetX) * scaleX;
+          const yc = (((stroke[i].y + stroke[i + 1].y) / 2) + offsetY) * scaleY;
+          const currX = (stroke[i].x + offsetX) * scaleX;
+          const currY = (stroke[i].y + offsetY) * scaleY;
+          ctxUser.quadraticCurveTo(currX, currY, xc, yc);
+        }
+        const last = stroke[stroke.length - 1];
+        ctxUser.lineTo((last.x + offsetX) * scaleX, (last.y + offsetY) * scaleY);
+        ctxUser.stroke();
+      }
+    }
   }
 
-  // 4. Create Dilated Reference Mask (Tolerance Zone radius = 3px)
-  const DILATION_RADIUS = 3;
+  let userPixelCount = 0;
+  const userPixels = new Uint8Array(RESOLUTION * RESOLUTION);
+
+  if (ctxUser) {
+    const userData = ctxUser.getImageData(0, 0, RESOLUTION, RESOLUTION).data;
+    for (let i = 0; i < RESOLUTION * RESOLUTION; i++) {
+      if (userData[i * 4 + 3] > 30) {
+        userPixels[i] = 1;
+        userPixelCount++;
+      }
+    }
+  }
+
+  // 4. Human-friendly Dilation Tolerance (Radius = 6px on 100x100 resolution)
+  const DILATION_RADIUS = 6;
   const refDilated = new Uint8Array(RESOLUTION * RESOLUTION);
 
   for (let y = 0; y < RESOLUTION; y++) {
@@ -189,11 +240,10 @@ export function evaluateKanaDrawing(
     }
   }
 
-  // How much of user ink is relevant (precision)
+  // Precision: fraction of user ink inside character tolerance
   const precision = hitsInTolerance / Math.max(1, userPixelCount);
 
-  // How much of the target character did the user cover (coverage/recall)
-  // Check how many dilated user pixels overlap with the reference
+  // Dilate user drawing to evaluate character coverage
   const userDilated = new Uint8Array(RESOLUTION * RESOLUTION);
   for (let y = 0; y < RESOLUTION; y++) {
     for (let x = 0; x < RESOLUTION; x++) {
@@ -218,53 +268,59 @@ export function evaluateKanaDrawing(
     }
   }
 
+  // Recall / Coverage: fraction of target kana strokes covered
   const recall = refCovered / Math.max(1, refPixelCount);
 
-  // 6. Compute Base Score (Harmonic F1 + Density Balance)
+  // Harmonic shape score
   const f1 = (2 * precision * recall) / Math.max(0.001, precision + recall);
   let rawScore = Math.round(f1 * 100);
 
-  // Stroke count bonus or penalty
+  // Stroke count bonus: accurate stroke count awards significant bonus
   if (strokeCountMatch) {
-    rawScore = Math.min(100, rawScore + 6);
-  } else if (Math.abs(userStrokesCount - expectedStrokes) > 2) {
-    rawScore = Math.max(10, rawScore - 12);
+    rawScore = Math.min(100, rawScore + 10);
+  } else if (Math.abs(userStrokesCount - expectedStrokes) === 1) {
+    // Tolerant to connected strokes (e.g. handwriting cursive)
+    rawScore = Math.min(100, rawScore + 3);
+  } else {
+    // Excessive or missing strokes penalty
+    rawScore = Math.max(15, rawScore - 12);
   }
 
-  const finalScore = Math.max(0, Math.min(100, rawScore));
+  const finalScore = Math.max(10, Math.min(100, rawScore));
   const precisionPercent = Math.round(precision * 100);
   const coveragePercent = Math.round(recall * 100);
 
-  // Rating & Message
   let rating: 'perfect' | 'great' | 'good' | 'retry';
   let stars: 1 | 2 | 3;
   let feedbackTitle = '';
   let feedbackMessage = '';
 
-  if (finalScore >= 78) {
-    rating = 'perfect';
-    stars = 3;
-    feedbackTitle = 'Luar Biasa! ★★★';
-    feedbackMessage = strokeCountMatch
-      ? `Bentuk dan jumlah coretan (${expectedStrokes}) sangat rapi & akurat!`
-      : `Bentuk sangat mirip! Target coretan standar: ${expectedStrokes}.`;
-  } else if (finalScore >= 58) {
-    rating = 'great';
-    stars = 2;
-    feedbackTitle = 'Bagus Banget! ★★';
-    feedbackMessage = strokeCountMatch
-      ? `Proporsi huruf sudah pas dengan ${expectedStrokes} coretan yang benar.`
-      : `Proporsi sudah baik, perhatikan urutan coretan standar (${expectedStrokes} coretan).`;
-  } else if (finalScore >= 38) {
+  if (finalScore >= 70) {
+    if (finalScore >= 85) {
+      rating = 'perfect';
+      stars = 3;
+      feedbackTitle = 'Luar Biasa! ★★★';
+      feedbackMessage = strokeCountMatch
+        ? `Bentuk dan ${expectedStrokes} coretan sangat rapi & akurat!`
+        : `Bentuk sangat mirip! Target standar: ${expectedStrokes} coretan.`;
+    } else {
+      rating = 'great';
+      stars = 2;
+      feedbackTitle = 'Bagus Banget! ★★';
+      feedbackMessage = strokeCountMatch
+        ? `Proporsi huruf pas dengan ${expectedStrokes} coretan yang benar.`
+        : `Proporsi sudah baik. Standar: ${expectedStrokes} coretan.`;
+    }
+  } else if (finalScore >= 45) {
     rating = 'good';
     stars = 1;
-    feedbackTitle = 'Cukup Mirip! ★';
-    feedbackMessage = 'Bentuk dasar sudah terlihat, terus latih lengkungan dan proporsinya.';
+    feedbackTitle = 'Cukup Mirip';
+    feedbackMessage = 'Bentuk dasar sudah terlihat, perhatikan posisi lengkungan dan panjang garis.';
   } else {
     rating = 'retry';
     stars = 1;
     feedbackTitle = 'Perlu Latihan Lagi';
-    feedbackMessage = 'Bandingkan dengan panduan bayangan untuk melihat posisi coretan yang tepat.';
+    feedbackMessage = 'Bandingkan dengan bayangan panduan untuk melihat posisi garis yang pas.';
   }
 
   return {
@@ -276,7 +332,7 @@ export function evaluateKanaDrawing(
     strokeCountMatch,
     userStrokesCount,
     expectedStrokes,
-    coveragePercent,
-    precisionPercent,
+    coveragePercent: coveragePercent,
+    precisionPercent: precisionPercent,
   };
 }
