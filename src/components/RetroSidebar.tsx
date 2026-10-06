@@ -132,7 +132,7 @@ export const RetroSidebar: React.FC<RetroSidebarProps> = ({
                 onClick={() => {
                   playKeyClickSound();
                   onSelectLevel(row.level);
-                  if (currentTab !== 'brute-force') onSelectTab('brute-force');
+                  if (currentTab !== 'brute-force' && currentTab !== 'writing-drill') onSelectTab('brute-force');
                 }}
                 className={`w-full text-left p-2 rounded-xl border-2 transition-all flex items-center justify-between group ${
                   isCurrent
@@ -178,10 +178,18 @@ export const RetroSidebar: React.FC<RetroSidebarProps> = ({
       <div className="retro-card-blue p-3.5 text-center hidden lg:block">
         <Sparkles className="w-6 h-6 text-[#ffd200] mx-auto mb-1 animate-pulse" />
         <h4 className="font-bungee text-sm text-[#ffd200] uppercase">
-          CARA CEPAT HAFAL
+          {currentTab === 'writing-drill' ? 'TIPS MENULIS KANA' : 'CARA CEPAT HAFAL'}
         </h4>
         <p className="text-[11px] font-heading font-medium text-white/90 mt-1 leading-snug">
-          Gunakan <strong>Brute Force Mode</strong> untuk hafal baris per baris. Aktifkan <strong>Reverse Mode</strong> untuk menguji daya ingat aktif melalui keypad!
+          {currentTab === 'writing-drill' ? (
+            <>
+              Mulailah dengan <strong>Mode Jiplak ON</strong> untuk membiasakan arah goresan. Matikan jiplak untuk menguji daya ingat dan presisi bentuk huruf!
+            </>
+          ) : (
+            <>
+              Gunakan <strong>Brute Force Mode</strong> untuk hafal baris per baris. Aktifkan <strong>Reverse Mode</strong> untuk menguji daya ingat aktif melalui keypad!
+            </>
+          )}
         </p>
       </div>
     </aside>

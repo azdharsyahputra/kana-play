@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { JAPANESE_WORDS, checkWordRomajiMatch } from '../data/wordsData';
+import { DAKUTEN_MAP, HANDAKUTEN_MAP, SMALL_KANA_MAP } from '../data/kanaData';
 import type { DrillDirection, UserStats, WordItem } from '../types';
 import { KanaKeyboard } from './KanaKeyboard';
 import { playCorrectSound, playIncorrectSound, speakJapanese, playKeyClickSound } from '../utils/audio';
@@ -119,16 +120,36 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
 
       setLastAnswer({ wasCorrect: false, word: currentWord });
       setInputVal('');
+      setKanaBuffer('');
     }
   };
 
   // Kana keypad handlers for Reverse Mode
   const handleKeypadSelect = (char: string) => {
-    const newBuf = kanaBuffer + char;
+    let newBuf = kanaBuffer;
+    if (newBuf.endsWith('゛') && DAKUTEN_MAP[char]) {
+      newBuf = newBuf.slice(0, -1) + DAKUTEN_MAP[char];
+    } else if (newBuf.endsWith('゜') && HANDAKUTEN_MAP[char]) {
+      newBuf = newBuf.slice(0, -1) + HANDAKUTEN_MAP[char];
+    } else if (newBuf.endsWith('小') && SMALL_KANA_MAP[char]) {
+      newBuf = newBuf.slice(0, -1) + SMALL_KANA_MAP[char];
+    } else {
+      newBuf = newBuf + char;
+    }
+
     setKanaBuffer(newBuf);
 
-    // If buffer length equals target kana length, auto-check!
-    if (currentWord && newBuf.length === currentWord.kana.length) {
+    // Auto-check ONLY if exact match! Never prematurely penalize user while assembling
+    if (currentWord && newBuf === currentWord.kana) {
+      handleSubmit(newBuf);
+    }
+  };
+
+  const handleKeypadUpdateBuffer = (newBuf: string) => {
+    setKanaBuffer(newBuf);
+
+    // Auto-check ONLY if exact match!
+    if (currentWord && newBuf === currentWord.kana) {
       handleSubmit(newBuf);
     }
   };
@@ -144,6 +165,28 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
   const handleKeypadSubmit = () => {
     handleSubmit(kanaBuffer);
   };
+
+  // Physical keyboard support for Reverse Mode
+  useEffect(() => {
+    if (direction !== 'romaji_to_kana') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+        handleKeypadDelete();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        handleKeypadSubmit();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [direction, kanaBuffer, currentWord]);
 
   if (!currentWord) return null;
 
@@ -395,6 +438,7 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
               script={currentWord.script === 'katakana' ? 'katakana' : 'hiragana'}
               isWordMode={true}
               currentBuffer={kanaBuffer}
+              onUpdateBuffer={handleKeypadUpdateBuffer}
               onSelectKana={handleKeypadSelect}
               onDelete={handleKeypadDelete}
               onClear={handleKeypadClear}

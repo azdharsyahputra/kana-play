@@ -3967,7 +3967,8 @@ export const JAPANESE_WORDS: WordItem[] = [
   },
   {
     "id": "d-059",
-    "kana": "消しゴム",
+    "kana": "ケシゴム",
+    "kanji": "消しゴム",
     "romaji": "keshigomu",
     "english": "Eraser / Rubber",
     "indonesian": "Penghapus karet",
@@ -4037,7 +4038,8 @@ export const JAPANESE_WORDS: WordItem[] = [
   },
   {
     "id": "d-066",
-    "kana": "Tシャツ",
+    "kana": "ティーシャツ",
+    "kanji": "Tシャツ",
     "romaji": "tiishatsu",
     "english": "T-shirt",
     "indonesian": "Kaos oblong",
@@ -4267,12 +4269,13 @@ export const JAPANESE_WORDS: WordItem[] = [
   },
   {
     "id": "d-089",
-    "kana": "冷蔵庫",
+    "kana": "れいぞうこ",
+    "kanji": "冷蔵庫",
     "romaji": "reizouko",
     "english": "Refrigerator",
     "indonesian": "Kulkas",
     "category": "daily",
-    "script": "katakana",
+    "script": "hiragana",
     "difficulty": 1
   },
   {

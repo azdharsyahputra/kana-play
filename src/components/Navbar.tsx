@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppTab, UserStats } from '../types';
 import { Starburst } from './Starburst';
-import { Volume2, VolumeX, RotateCcw, Zap, Flame, Trophy, Award, BookOpen, Layers } from 'lucide-react';
+import { Volume2, VolumeX, RotateCcw, Zap, Flame, Trophy, Award, BookOpen, Layers, PenTool } from 'lucide-react';
 import { getSoundEnabled, setSoundEnabled, playKeyClickSound } from '../utils/audio';
 
 interface NavbarProps {
@@ -116,13 +116,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* MODE TABS (Nova Play Pill Buttons) */}
-          <div className="w-full md:w-auto grid grid-cols-4 sm:flex sm:flex-wrap items-center justify-center gap-1 sm:gap-2 bg-[#071e54]/80 p-1.5 rounded-xl border-2 border-white/20 shadow-inner">
+          <div className="w-full md:w-auto flex overflow-x-auto sm:flex-wrap items-center justify-start sm:justify-center gap-1 sm:gap-2 bg-[#071e54]/80 p-1.5 rounded-xl border-2 border-white/20 shadow-inner [scrollbar-width:none]">
             <button
               onClick={() => {
                 playKeyClickSound();
                 onSelectTab('brute-force');
               }}
-              className={`retro-btn px-1 sm:px-4 py-2 text-[10px] sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 leading-tight ${
+              className={`retro-btn shrink-0 px-2 sm:px-3 py-2 text-[10px] sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 leading-tight ${
                 currentTab === 'brute-force'
                   ? 'retro-btn-yellow'
                   : 'bg-transparent text-white border-transparent shadow-none hover:bg-white/10'
@@ -137,7 +137,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 playKeyClickSound();
                 onSelectTab('free-drill');
               }}
-              className={`retro-btn px-1 sm:px-4 py-2 text-[10px] sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 leading-tight ${
+              className={`retro-btn shrink-0 px-2 sm:px-3 py-2 text-[10px] sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 leading-tight ${
                 currentTab === 'free-drill'
                   ? 'retro-btn-yellow'
                   : 'bg-transparent text-white border-transparent shadow-none hover:bg-white/10'
@@ -152,7 +152,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 playKeyClickSound();
                 onSelectTab('word-drill');
               }}
-              className={`retro-btn px-1 sm:px-4 py-2 text-[10px] sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 leading-tight ${
+              className={`retro-btn shrink-0 px-2 sm:px-3 py-2 text-[10px] sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 leading-tight ${
                 currentTab === 'word-drill'
                   ? 'retro-btn-yellow'
                   : 'bg-transparent text-white border-transparent shadow-none hover:bg-white/10'
@@ -165,9 +165,24 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={() => {
                 playKeyClickSound();
+                onSelectTab('writing-drill');
+              }}
+              className={`retro-btn shrink-0 px-2 sm:px-3 py-2 text-[10px] sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 leading-tight ${
+                currentTab === 'writing-drill'
+                  ? 'retro-btn-yellow'
+                  : 'bg-transparent text-white border-transparent shadow-none hover:bg-white/10'
+              }`}
+            >
+              <PenTool className="w-4 h-4" />
+              <span>WRITING</span>
+            </button>
+
+            <button
+              onClick={() => {
+                playKeyClickSound();
                 onSelectTab('matrix');
               }}
-              className={`retro-btn px-1 sm:px-4 py-2 text-[10px] sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 leading-tight ${
+              className={`retro-btn shrink-0 px-2 sm:px-3 py-2 text-[10px] sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 leading-tight ${
                 currentTab === 'matrix'
                   ? 'retro-btn-yellow'
                   : 'bg-transparent text-white border-transparent shadow-none hover:bg-white/10'

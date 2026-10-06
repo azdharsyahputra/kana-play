@@ -1,7 +1,7 @@
 import React from 'react';
 import type { AppTab, DrillDirection } from '../types';
 import { Starburst } from './Starburst';
-import { Zap, Shuffle, BookOpen } from 'lucide-react';
+import { Zap, Shuffle, BookOpen, PenTool } from 'lucide-react';
 import { playKeyClickSound } from '../utils/audio';
 
 interface RetroFeatureShowcaseProps {
@@ -69,6 +69,17 @@ export const RetroFeatureShowcase: React.FC<RetroFeatureShowcaseProps> = ({
                 <BookOpen className="w-4 h-4 text-[#0c389c]" />
                 <span>LATIHAN KATA (VOCAB)</span>
               </button>
+
+              <button
+                onClick={() => {
+                  playKeyClickSound();
+                  onSelectTab('writing-drill');
+                }}
+                className="retro-btn retro-btn-yellow px-4 py-2.5 text-xs sm:text-sm flex items-center gap-2"
+              >
+                <PenTool className="w-4 h-4" />
+                <span>LATIHAN MENULIS (WRITING) ✍️</span>
+              </button>
             </div>
           </div>
 
@@ -76,15 +87,15 @@ export const RetroFeatureShowcase: React.FC<RetroFeatureShowcaseProps> = ({
           <div className="flex flex-col items-center justify-center relative shrink-0">
             <Starburst variant="yellow" size="lg" rotation={6} className="shadow-lg">
               <span className="text-xs font-black uppercase text-[#d9261c] leading-tight">BARU!</span>
-              <span className="text-lg font-bungee text-[#0b1a3d] leading-none">REVERSE</span>
-              <span className="text-sm font-bungee text-[#0c389c] leading-none">KEYPAD</span>
+              <span className="text-lg font-bungee text-[#0b1a3d] leading-none">WRITING</span>
+              <span className="text-sm font-bungee text-[#0c389c] leading-none">CANVAS ✍️</span>
             </Starburst>
           </div>
         </div>
       </div>
 
-      {/* 2. THREE HIGHLIGHT FEATURE CARDS (Nova Play Toy Showcase style) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+      {/* 2. FOUR HIGHLIGHT FEATURE CARDS (Nova Play Toy Showcase style) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {/* Card 1 */}
         <div
           onClick={() => {
@@ -153,6 +164,29 @@ export const RetroFeatureShowcase: React.FC<RetroFeatureShowcaseProps> = ({
           </h4>
           <p className="text-[11px] font-bold text-gray-600 mt-0.5">
             Susun dan baca kosakata bahasa Jepang asli dengan audio pengucapan.
+          </p>
+        </div>
+
+        {/* Card 4 */}
+        <div
+          onClick={() => {
+            playKeyClickSound();
+            onSelectTab('writing-drill');
+          }}
+          className="retro-card p-3.5 bg-white cursor-pointer hover:border-[#ffd200] transition-all group"
+        >
+          <div className="bg-[#ffd200] text-[#0b1a3d] text-xs font-bungee px-2.5 py-1 rounded-md mb-2 flex items-center justify-between border border-[#0b1a3d]">
+            <span>04 • WRITING DRILL</span>
+            <span>✍️ KANVAS</span>
+          </div>
+          <div className="h-20 bg-[#fbf9f4] rounded-xl border-2 border-[#0b1a3d] flex items-center justify-center text-3xl font-kana font-black text-[#0b1a3d] group-hover:scale-105 transition-transform">
+            ✍️ あ → 98%
+          </div>
+          <h4 className="font-bungee text-sm text-[#0b1a3d] mt-2 uppercase">
+            Latihan Goresan & Jiplak
+          </h4>
+          <p className="text-[11px] font-bold text-gray-600 mt-0.5">
+            Kanvas interaktif dengan grid kotak Jepang, mode bayangan, dan cek kemiripan otomatis.
           </p>
         </div>
       </div>

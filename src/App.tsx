@@ -7,6 +7,7 @@ import { RetroFeatureShowcase } from './components/RetroFeatureShowcase';
 import { BruteForceTrainer } from './components/BruteForceTrainer';
 import { FreeTrainer } from './components/FreeTrainer';
 import { WordTrainer } from './components/WordTrainer';
+import { WritingTrainer } from './components/WritingTrainer';
 import { KanaMatrix } from './components/KanaMatrix';
 import { CheatSheet } from './components/CheatSheet';
 import { RetroFooter } from './components/RetroFooter';
@@ -102,6 +103,16 @@ export function App() {
                 onUpdateStats={handleUpdateStats}
                 direction={direction}
                 onSelectDirection={setDirection}
+              />
+            )}
+
+            {currentTab === 'writing-drill' && (
+              <WritingTrainer
+                stats={stats}
+                onUpdateStats={handleUpdateStats}
+                script={script}
+                onSelectScript={setScript}
+                selectedLevel={selectedLevel}
               />
             )}
 

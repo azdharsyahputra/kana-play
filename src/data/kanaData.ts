@@ -315,3 +315,98 @@ export function checkRomajiMatch(userInput: string, targetRomaji: string): boole
 
   return false;
 }
+
+// Unvoiced / Handakuten -> Dakuten (゛)
+export const DAKUTEN_MAP: Record<string, string> = {
+  // Hiragana
+  'か': 'が', 'き': 'ぎ', 'く': 'ぐ', 'け': 'げ', 'こ': 'ご',
+  'さ': 'ざ', 'し': 'じ', 'す': 'ず', 'せ': 'ぜ', 'そ': 'ぞ',
+  'た': 'だ', 'ち': 'ぢ', 'つ': 'づ', 'て': 'で', 'と': 'ど',
+  'は': 'ば', 'ひ': 'び', 'ふ': 'ぶ', 'へ': 'べ', 'ほ': 'ぼ',
+  'う': 'ゔ',
+  'ぱ': 'ば', 'ぴ': 'び', 'ぷ': 'ぶ', 'ぺ': 'べ', 'ぽ': 'ぼ',
+
+  // Katakana
+  'カ': 'ガ', 'キ': 'ギ', 'ク': 'グ', 'ケ': 'ゲ', 'コ': 'ゴ',
+  'サ': 'ザ', 'シ': 'ジ', 'ス': 'ズ', 'セ': 'ゼ', 'ソ': 'ゾ',
+  'タ': 'ダ', 'チ': 'ヂ', 'ツ': 'ヅ', 'テ': 'デ', 'ト': 'ド',
+  'ハ': 'バ', 'ヒ': 'ビ', 'フ': 'ブ', 'ヘ': 'ベ', 'ホ': 'ボ',
+  'ウ': 'ヴ',
+  'パ': 'バ', 'ピ': 'ビ', 'プ': 'ブ', 'ペ': 'ベ', 'ポ': 'ボ',
+};
+
+// Dakuten -> Unvoiced (for toggle back)
+export const DAKUTEN_REVERSE_MAP: Record<string, string> = {
+  // Hiragana
+  'が': 'か', 'ぎ': 'き', 'ぐ': 'く', 'げ': 'け', 'ご': 'こ',
+  'ざ': 'さ', 'じ': 'し', 'ず': 'す', 'ぜ': 'せ', 'ぞ': 'そ',
+  'だ': 'た', 'ぢ': 'ち', 'づ': 'つ', 'で': 'て', 'ど': 'と',
+  'ば': 'は', 'び': 'ひ', 'ぶ': 'ふ', 'べ': 'へ', 'ぼ': 'ほ',
+  'ゔ': 'う',
+
+  // Katakana
+  'ガ': 'カ', 'ギ': 'キ', 'グ': 'ク', 'ゲ': 'ケ', 'ゴ': 'コ',
+  'ザ': 'サ', 'ジ': 'シ', 'ズ': 'ス', 'ゼ': 'セ', 'ゾ': 'ソ',
+  'ダ': 'タ', 'ヂ': 'チ', 'ヅ': 'ツ', 'デ': 'テ', 'ド': 'ト',
+  'バ': 'ハ', 'ビ': 'ヒ', 'ブ': 'フ', 'ベ': 'ヘ', 'ボ': 'ホ',
+  'ヴ': 'ウ',
+};
+
+// Unvoiced / Dakuten -> Handakuten (゜)
+export const HANDAKUTEN_MAP: Record<string, string> = {
+  // Hiragana
+  'は': 'ぱ', 'ひ': 'ぴ', 'ふ': 'ぷ', 'へ': 'ぺ', 'ほ': 'ぽ',
+  'ば': 'ぱ', 'び': 'ぴ', 'ぶ': 'ぷ', 'べ': 'ぺ', 'ぼ': 'ぽ',
+
+  // Katakana
+  'ハ': 'パ', 'ヒ': 'ピ', 'フ': 'プ', 'ヘ': 'ペ', 'ホ': 'ポ',
+  'バ': 'パ', 'ビ': 'ピ', 'ブ': 'プ', 'ベ': 'ペ', 'ボ': 'ポ',
+};
+
+// Handakuten -> Unvoiced (for toggle back)
+export const HANDAKUTEN_REVERSE_MAP: Record<string, string> = {
+  // Hiragana
+  'ぱ': 'は', 'ぴ': 'ひ', 'ぷ': 'ふ', 'ぺ': 'へ', 'ぽ': 'ほ',
+
+  // Katakana
+  'パ': 'ハ', 'ピ': 'ヒ', 'プ': 'フ', 'ペ': 'ヘ', 'ポ': 'ホ',
+};
+
+// Big <-> Small Kana Map
+export const SMALL_KANA_MAP: Record<string, string> = {
+  // Hiragana: big to small
+  'つ': 'っ', 'や': 'ゃ', 'ゆ': 'ゅ', 'よ': 'ょ',
+  'あ': 'ぁ', 'い': 'ぃ', 'う': 'ぅ', 'え': 'ぇ', 'お': 'ぉ',
+  'わ': 'ゎ',
+  // Hiragana: small to big
+  'っ': 'つ', 'ゃ': 'や', 'ゅ': 'ゆ', 'ょ': 'よ',
+  'ぁ': 'あ', 'ぃ': 'い', 'ぅ': 'う', 'ぇ': 'え', 'ぉ': 'お',
+  'ゎ': 'わ',
+
+  // Katakana: big to small
+  'ツ': 'ッ', 'ヤ': 'ャ', 'ユ': 'ュ', 'ヨ': 'ョ',
+  'ア': 'ァ', 'イ': 'ィ', 'ウ': 'ゥ', 'エ': 'ェ', 'オ': 'ォ',
+  'ワ': 'ヮ', 'カ': 'ヵ', 'ケ': 'ヶ',
+  // Katakana: small to big
+  'ッ': 'ツ', 'ャ': 'ヤ', 'ュ': 'ユ', 'ョ': 'ヨ',
+  'ァ': 'ア', 'ィ': 'イ', 'ゥ': 'ウ', 'ェ': 'エ', 'ォ': 'オ',
+  'ヮ': 'ワ', 'ヵ': 'カ', 'ヶ': 'ケ',
+};
+
+export function applyDakuten(lastChar: string): string {
+  if (DAKUTEN_MAP[lastChar]) return DAKUTEN_MAP[lastChar];
+  if (DAKUTEN_REVERSE_MAP[lastChar]) return DAKUTEN_REVERSE_MAP[lastChar];
+  return lastChar;
+}
+
+export function applyHandakuten(lastChar: string): string {
+  if (HANDAKUTEN_MAP[lastChar]) return HANDAKUTEN_MAP[lastChar];
+  if (HANDAKUTEN_REVERSE_MAP[lastChar]) return HANDAKUTEN_REVERSE_MAP[lastChar];
+  return lastChar;
+}
+
+export function toggleSmallKana(lastChar: string): string {
+  if (SMALL_KANA_MAP[lastChar]) return SMALL_KANA_MAP[lastChar];
+  return lastChar;
+}
+
