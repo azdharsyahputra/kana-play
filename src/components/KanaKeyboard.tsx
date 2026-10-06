@@ -11,6 +11,7 @@ interface KanaKeyboardProps {
   isWordMode?: boolean;
   currentBuffer?: string;
   onDelete?: () => void;
+  onClear?: () => void;
   onSubmit?: () => void;
   // Candidates focus (e.g., current brute-force row items)
   focusCandidates?: KanaItem[];
@@ -32,6 +33,7 @@ export const KanaKeyboard: React.FC<KanaKeyboardProps> = ({
   isWordMode = false,
   currentBuffer = '',
   onDelete,
+  onClear,
   onSubmit,
   focusCandidates,
 }) => {
@@ -167,51 +169,77 @@ export const KanaKeyboard: React.FC<KanaKeyboardProps> = ({
         </div>
       </div>
 
-      {/* Word Mode Action Bar (Buffer & Backspace/Submit) */}
+      {/* Word Mode Action Bar (Buffer & Actions) */}
       {isWordMode && (
-        <div className="bg-white border-2 border-[#0b1a3d] rounded-xl p-2.5 mb-3 flex items-center justify-between gap-2 shadow-[3px_3px_0px_#0b1a3d]">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="text-xs font-extrabold uppercase text-[#0c389c] bg-[#e0e7ff] px-2 py-0.5 rounded border border-[#0c389c]/30">
-              Input:
-            </span>
-            <div className="font-kana font-bold text-2xl text-[#0b1a3d] tracking-wider min-h-[34px] flex items-center truncate">
-              {currentBuffer ? (
-                <span className="bg-[#ffd200]/40 px-3 py-0.5 rounded-lg border border-[#ffd200]">
-                  {currentBuffer}
-                </span>
-              ) : (
-                <span className="text-gray-400 text-xs italic font-normal">
-                  (Pilih huruf di keypad bawah untuk menyusun kata...)
-                </span>
-              )}
+        <div className="bg-white border-2 border-[#0b1a3d] rounded-xl p-2.5 sm:p-3 mb-3 shadow-[3px_3px_0px_#0b1a3d] space-y-2">
+          {/* Row 1: Full-width Roomy Input Display Box */}
+          <div className="flex items-center justify-between gap-2 bg-[#f6eedf] border-2 border-[#0b1a3d]/20 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1 overflow-x-auto">
+              <span className="text-[11px] font-black uppercase text-[#0c389c] bg-[#e0e7ff] px-2 py-0.5 rounded border border-[#0c389c]/30 shrink-0">
+                INPUT:
+              </span>
+              <div className="font-kana font-bold text-2xl sm:text-3xl text-[#0b1a3d] tracking-wider flex items-center min-h-[34px]">
+                {currentBuffer ? (
+                  <span className="bg-[#ffd200] text-[#0b1a3d] px-3 py-0.5 rounded-lg border-2 border-[#0b1a3d] shadow-[2px_2px_0px_#0b1a3d] whitespace-nowrap">
+                    {currentBuffer}
+                  </span>
+                ) : (
+                  <span className="text-gray-400 text-xs italic font-normal">
+                    (Pilih huruf di bawah untuk menyusun kata...)
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-1.5">
+            {/* Audio Button */}
             {currentBuffer && (
               <button
+                type="button"
                 onClick={() => speakJapanese(currentBuffer)}
                 title="Dengarkan Pengucapan"
-                className="retro-btn retro-btn-white p-1.5 text-xs flex items-center gap-1"
+                className="retro-btn retro-btn-white p-1.5 text-xs flex items-center shrink-0"
               >
                 <Volume2 className="w-4 h-4 text-[#0c389c]" />
               </button>
             )}
+          </div>
+
+          {/* Row 2: Action Controls (Clear, Hapus, Submit) */}
+          <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+            {currentBuffer && onClear && (
+              <button
+                type="button"
+                onClick={onClear}
+                title="Hapus semua input"
+                className="text-xs font-bold text-gray-500 hover:text-[#d9261c] px-2 py-1 underline transition-colors"
+              >
+                Reset
+              </button>
+            )}
+
             <button
+              type="button"
               onClick={onDelete}
+              disabled={!currentBuffer}
               title="Hapus huruf terakhir"
-              className="retro-btn retro-btn-red px-2.5 py-1.5 text-xs flex items-center gap-1"
+              className={`retro-btn px-2.5 sm:px-3 py-1.5 text-xs flex items-center gap-1 ${
+                currentBuffer
+                  ? 'retro-btn-red shadow-[2px_2px_0px_#0b1a3d]'
+                  : 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed shadow-none'
+              }`}
             >
               <Delete className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">HAPUS</span>
+              <span>HAPUS</span>
             </button>
+
             <button
+              type="button"
               onClick={onSubmit}
               disabled={!currentBuffer}
               title="Kirim jawaban"
-              className={`retro-btn px-3 py-1.5 text-xs flex items-center gap-1.5 ${
+              className={`retro-btn px-3.5 sm:px-4 py-1.5 text-xs flex items-center gap-1.5 font-black ${
                 currentBuffer
-                  ? 'retro-btn-yellow shadow-[3px_3px_0px_#0b1a3d]'
+                  ? 'retro-btn-yellow shadow-[2px_2px_0px_#0b1a3d]'
                   : 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed shadow-none'
               }`}
             >

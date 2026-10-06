@@ -137,6 +137,10 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
     setKanaBuffer(prev => prev.slice(0, -1));
   };
 
+  const handleKeypadClear = () => {
+    setKanaBuffer('');
+  };
+
   const handleKeypadSubmit = () => {
     handleSubmit(kanaBuffer);
   };
@@ -393,6 +397,7 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
               currentBuffer={kanaBuffer}
               onSelectKana={handleKeypadSelect}
               onDelete={handleKeypadDelete}
+              onClear={handleKeypadClear}
               onSubmit={handleKeypadSubmit}
             />
           </div>
