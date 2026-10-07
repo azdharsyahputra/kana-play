@@ -10,7 +10,7 @@ interface KanaMatrixProps {
 
 export const KanaMatrix: React.FC<KanaMatrixProps> = ({ stats }) => {
   const [activeScript, setActiveScript] = useState<'hiragana' | 'katakana'>('hiragana');
-  const [activeGroup, setActiveGroup] = useState<'main' | 'dakuten' | 'youon'>('main');
+  const [activeGroup, setActiveGroup] = useState<'main' | 'dakuten' | 'youon' | 'sokuon'>('main');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedKana, setSelectedKana] = useState<KanaItem | null>(null);
 
@@ -18,6 +18,7 @@ export const KanaMatrix: React.FC<KanaMatrixProps> = ({ stats }) => {
     if (activeGroup === 'main') return row.groupType === 'main';
     if (activeGroup === 'dakuten') return row.groupType === 'dakuten' || row.groupType === 'handakuten';
     if (activeGroup === 'youon') return row.groupType === 'youon';
+    if (activeGroup === 'sokuon') return row.groupType === 'sokuon';
     return true;
   });
 
@@ -114,6 +115,19 @@ export const KanaMatrix: React.FC<KanaMatrixProps> = ({ stats }) => {
           >
             拗音 Yōon Combinations (33)
           </button>
+          <button
+            onClick={() => {
+              playKeyClickSound();
+              setActiveGroup('sokuon');
+            }}
+            className={`px-3 py-1.5 text-xs font-heading font-black rounded-xl border-2 transition-all ${
+              activeGroup === 'sokuon'
+                ? 'bg-[#ffd200] text-[#0b1a3d] border-[#0b1a3d] shadow-[3px_3px_0px_#0b1a3d]'
+                : 'bg-white text-[#0b1a3d] border-gray-300 hover:border-[#0b1a3d]'
+            }`}
+          >
+            促音 Sokuon & Khusus (っ・ー)
+          </button>
         </div>
       </div>
 
@@ -169,6 +183,89 @@ export const KanaMatrix: React.FC<KanaMatrixProps> = ({ stats }) => {
             </div>
           </div>
         ))}
+
+        {/* SPECIAL SOKUON GUIDE MODULE (Shown when Sokuon group is active) */}
+        {activeGroup === 'sokuon' && (
+          <div className="border-[3px] border-[#0b1a3d] rounded-2xl p-4 sm:p-6 bg-[#fffbeb] shadow-[4px_4px_0px_#0b1a3d] space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b-2 border-[#0b1a3d]/20">
+              <div className="flex items-center gap-2.5">
+                <span className="px-2.5 py-1 bg-[#ffd200] rounded-xl border-2 border-[#0b1a3d] text-xl font-bungee shadow-[2px_2px_0px_#0b1a3d]">
+                  っ / ッ
+                </span>
+                <div>
+                  <h3 className="font-bungee text-base sm:text-lg text-[#0b1a3d]">
+                    ★ PANDUAN LENGKAP SOKUON (促音) ★
+                  </h3>
+                  <p className="text-xs font-bold text-gray-600">
+                    Memahami jeda henti (glottal stop) dan konsonan ganda dalam bahasa Jepang.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="bg-white border-2 border-[#0b1a3d] rounded-xl p-3 shadow-[2px_2px_0px_#0b1a3d]">
+                <div className="text-xs font-bungee text-[#0c389c] mb-1">1. CIRI BENTUK</div>
+                <p className="text-xs text-gray-700 leading-relaxed font-medium">
+                  Sokuon adalah huruf <strong>tsu</strong> kecil (<strong>っ</strong> / <strong>ッ</strong>). Ukurannya sekitar separuh dari huruf normal dan berada di sudut kiri bawah kotak tulisan.
+                </p>
+              </div>
+
+              <div className="bg-white border-2 border-[#0b1a3d] rounded-xl p-3 shadow-[2px_2px_0px_#0b1a3d]">
+                <div className="text-xs font-bungee text-[#0c389c] mb-1">2. CARA BACA & JEDA</div>
+                <p className="text-xs text-gray-700 leading-relaxed font-medium">
+                  Tahan nafas / berikan jeda 1 ketukan sebelum membunyikan huruf berikutnya. Konsonan huruf setelahnya akan terdengar ganda (seperti <em>kk, tt, pp, ss</em>).
+                </p>
+              </div>
+
+              <div className="bg-white border-2 border-[#0b1a3d] rounded-xl p-3 shadow-[2px_2px_0px_#0b1a3d]">
+                <div className="text-xs font-bungee text-[#0c389c] mb-1">3. VOKAL PANJANG (ー)</div>
+                <p className="text-xs text-gray-700 leading-relaxed font-medium">
+                  Karakter <strong>ー (chōonpu)</strong> digunakan terutama pada Katakana untuk memperpanjang vokal sebanyak 1 ketukan (misal: <em>kā, rī, sū</em>).
+                </p>
+              </div>
+            </div>
+
+            {/* Interactive Word Audio Examples */}
+            <div className="bg-white border-2 border-[#0b1a3d] rounded-xl p-3.5 shadow-[2px_2px_0px_#0b1a3d]">
+              <div className="text-xs font-bungee text-[#0b1a3d] mb-2.5 uppercase">
+                🔊 KLIK CONTOH KATA UNTUK MENDENGARKAN BUNYI SOKUON:
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {[
+                  { kana: 'きって', romaji: 'kitte', meaning: 'Perangko', breakdown: 'ki + っ + te' },
+                  { kana: 'がっこう', romaji: 'gakkou', meaning: 'Sekolah', breakdown: 'ga + っ + kou' },
+                  { kana: 'ざっし', romaji: 'zasshi', meaning: 'Majalah', breakdown: 'za + っ + shi' },
+                  { kana: 'きっぷ', romaji: 'kippu', meaning: 'Tiket Kereta', breakdown: 'ki + っ + pu' },
+                  { kana: 'コップ', romaji: 'koppu', meaning: 'Gelas / Cangkir', breakdown: 'ko + ッ + pu' },
+                  { kana: 'サッカー', romaji: 'sakkaa', meaning: 'Sepak Bola', breakdown: 'sa + ッ + kaa' },
+                ].map((ex) => (
+                  <button
+                    key={ex.kana}
+                    onClick={() => speakJapanese(ex.kana)}
+                    className="p-2.5 rounded-lg border-2 border-[#0b1a3d]/25 bg-[#f6eedf]/50 hover:bg-[#ffd200] transition-all flex items-center justify-between text-left group cursor-pointer shadow-[1px_1px_0px_#0b1a3d]"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-kana text-lg font-black text-[#0b1a3d] group-hover:scale-105 transition-transform">
+                          {ex.kana}
+                        </span>
+                        <span className="text-xs font-mono font-bold text-[#0c389c]">
+                          ({ex.romaji})
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-gray-600 font-bold truncate">
+                        {ex.meaning} • <span className="text-gray-400 font-normal">{ex.breakdown}</span>
+                      </div>
+                    </div>
+                    <Volume2 className="w-4 h-4 text-[#0c389c] shrink-0 ml-2" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 3. SELECTED KANA DETAIL MODAL / POPUP */}

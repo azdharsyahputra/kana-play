@@ -404,6 +404,20 @@ export const HIRAGANA_STROKE_DATA: Record<string, KanaStrokeInfo> = {
       'Mulai dari atas serong ke kiri bawah, lalu naik melengkung halus dan meluncur ke kanan atas',
     ],
   },
+  'っ': {
+    strokes: 1,
+    tips: 'Mirip つ (tsu) biasa tetapi ditulis berukuran kecil di kuadran kiri bawah.',
+    steps: [
+      'Garis mendatar sedikit melengkung ke atas, lalu melingkar setengah lingkaran ke kiri bawah dalam ukuran kecil',
+    ],
+  },
+  'ー': {
+    strokes: 1,
+    tips: 'Satu garis mendatar lurus dari kiri ke kanan (tanda vokal panjang).',
+    steps: [
+      'Tarik garis mendatar lurus dari kiri ke kanan di bagian tengah',
+    ],
+  },
 };
 
 export const KATAKANA_STROKE_DATA: Record<string, KanaStrokeInfo> = {
@@ -808,6 +822,22 @@ export const KATAKANA_STROKE_DATA: Record<string, KanaStrokeInfo> = {
     steps: [
       'Titik miring pendek di sebelah kiri atas',
       'Sapuan panjang dari kiri bawah meluncur tajam naik ke kanan atas',
+    ],
+  },
+  'ッ': {
+    strokes: 3,
+    tips: 'Mirip ツ (tsu) biasa tetapi ditulis berukuran kecil di kuadran kiri bawah.',
+    steps: [
+      'Titik miring pendek di kiri atas',
+      'Titik miring pendek kedua di tengah',
+      'Sapuan melengkung dari kanan atas meluncur ke kiri bawah',
+    ],
+  },
+  'ー': {
+    strokes: 1,
+    tips: 'Satu garis mendatar lurus dari kiri ke kanan (chōonpu tanda vokal panjang).',
+    steps: [
+      'Tarik garis mendatar lurus dari kiri ke kanan di bagian tengah',
     ],
   },
 };

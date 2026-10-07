@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { JAPANESE_WORDS, checkWordRomajiMatch } from '../data/wordsData';
-import { DAKUTEN_MAP, HANDAKUTEN_MAP, SMALL_KANA_MAP } from '../data/kanaData';
 import type { DrillDirection, UserStats, WordItem } from '../types';
 import { KanaKeyboard } from './KanaKeyboard';
 import { playCorrectSound, playIncorrectSound, speakJapanese, playKeyClickSound } from '../utils/audio';
@@ -126,30 +125,11 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
 
   // Kana keypad handlers for Reverse Mode
   const handleKeypadSelect = (char: string) => {
-    let newBuf = kanaBuffer;
-    if (newBuf.endsWith('゛') && DAKUTEN_MAP[char]) {
-      newBuf = newBuf.slice(0, -1) + DAKUTEN_MAP[char];
-    } else if (newBuf.endsWith('゜') && HANDAKUTEN_MAP[char]) {
-      newBuf = newBuf.slice(0, -1) + HANDAKUTEN_MAP[char];
-    } else if (newBuf.endsWith('小') && SMALL_KANA_MAP[char]) {
-      newBuf = newBuf.slice(0, -1) + SMALL_KANA_MAP[char];
-    } else {
-      newBuf = newBuf + char;
-    }
-
+    const newBuf = kanaBuffer + char;
     setKanaBuffer(newBuf);
 
-    // Auto-check ONLY if exact match! Never prematurely penalize user while assembling
-    if (currentWord && newBuf === currentWord.kana) {
-      handleSubmit(newBuf);
-    }
-  };
-
-  const handleKeypadUpdateBuffer = (newBuf: string) => {
-    setKanaBuffer(newBuf);
-
-    // Auto-check ONLY if exact match!
-    if (currentWord && newBuf === currentWord.kana) {
+    // Snappy auto-check when length matches target kana!
+    if (currentWord && newBuf.length === currentWord.kana.length) {
       handleSubmit(newBuf);
     }
   };
@@ -438,7 +418,6 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
               script={currentWord.script === 'katakana' ? 'katakana' : 'hiragana'}
               isWordMode={true}
               currentBuffer={kanaBuffer}
-              onUpdateBuffer={handleKeypadUpdateBuffer}
               onSelectKana={handleKeypadSelect}
               onDelete={handleKeypadDelete}
               onClear={handleKeypadClear}

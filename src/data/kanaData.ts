@@ -274,6 +274,19 @@ export const KANA_ROWS: KanaRow[] = [
       { id: 'pyo', romaji: 'pyo', hiragana: 'ぴょ', katakana: 'ピョ', rowId: 'row-yoon-dakuten', groupType: 'youon', orderIndex: 104 },
     ],
   },
+
+  // SOKUON & SPECIAL MARKS (Level 19)
+  {
+    id: 'row-sokuon',
+    name: 'Sokuon (促音)',
+    label: 'Sokuon & Panjang (っ・ー / ッ・ー)',
+    groupType: 'sokuon',
+    level: 19,
+    items: [
+      { id: 'sokuon', romaji: 'っ', hiragana: 'っ', katakana: 'ッ', rowId: 'row-sokuon', groupType: 'sokuon', orderIndex: 105 },
+      { id: 'chouon', romaji: 'ー', hiragana: 'ー', katakana: 'ー', rowId: 'row-sokuon', groupType: 'sokuon', orderIndex: 106 },
+    ],
+  },
 ];
 
 // Flat lists for quick lookup
@@ -301,6 +314,8 @@ export const ROMAJI_ALIASES: Record<string, string[]> = {
   'jo': ['jo', 'zyo', 'jyo'],
   'wo': ['wo', 'o'],
   'n': ['n', 'nn'],
+  'っ': ['っ', 'sokuon', 'xtsu', 'ltsu', 'tsu kecil', 'tsukecil', 'double consonant', 'pause'],
+  'ー': ['ー', '-', 'chouon', 'panjang', 'chouonpu', 'vokal panjang', 'dash'],
 };
 
 // Check if user's input matches romaji target (case-insensitive & trimmed)

@@ -10,7 +10,7 @@ export interface KanaItem {
   hiragana: string;
   katakana: string;
   rowId: string;
-  groupType: 'main' | 'dakuten' | 'handakuten' | 'youon';
+  groupType: 'main' | 'dakuten' | 'handakuten' | 'youon' | 'sokuon';
   orderIndex: number;
 }
 
@@ -18,7 +18,7 @@ export interface KanaRow {
   id: string;
   name: string;
   label: string; // e.g. "A Row (あ・い・う・え・お)"
-  groupType: 'main' | 'dakuten' | 'handakuten' | 'youon';
+  groupType: 'main' | 'dakuten' | 'handakuten' | 'youon' | 'sokuon';
   items: KanaItem[];
   level: number; // Tier sequence in brute force mode
 }
