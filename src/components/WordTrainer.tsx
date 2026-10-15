@@ -76,8 +76,9 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
       isCorrect = checkWordRomajiMatch(submittedStr, currentWord.romaji);
     } else {
       // Reverse: user inputs kana sequence
-      const cleanSubmit = submittedStr.trim();
-      const cleanTarget = currentWord.kana.trim();
+      const cleanKanaStr = (s: string) => s.replace(/[\s\-_ー.,?!~〜。、！？\(\)\[\]]/g, '');
+      const cleanSubmit = cleanKanaStr(submittedStr);
+      const cleanTarget = cleanKanaStr(currentWord.kana);
       isCorrect = cleanSubmit === cleanTarget;
     }
 
@@ -129,7 +130,8 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
     setKanaBuffer(newBuf);
 
     // Snappy auto-check when length matches target kana!
-    if (currentWord && newBuf.length === currentWord.kana.length) {
+    const targetKanaClean = currentWord ? currentWord.kana.replace(/[\s\-_ー.,?!~〜。、！？\(\)\[\]]/g, '') : '';
+    if (currentWord && newBuf.length === targetKanaClean.length) {
       handleSubmit(newBuf);
     }
   };
