@@ -68,7 +68,7 @@ export const HIRAGANA_STROKE_DATA: Record<string, KanaStrokeInfo> = {
       'Garis miring menusuk dari atas ke kanan bawah, akhiri kait',
       'Lengkungan terpisah di bagian bawah menghadap ke kiri',
     ],
-  },
+  }, 
   'く': {
     strokes: 1,
     tips: 'Satu tarikan tunggal membentuk sudut lancip mirip kurung siku buka (<).',

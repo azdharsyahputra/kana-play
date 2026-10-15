@@ -30,7 +30,7 @@ export interface WordItem {
   romaji: string;
   english: string;
   indonesian: string;
-  category: 'food' | 'animals' | 'daily' | 'basics' | 'anime' | 'jlpt5' | 'nature' | 'travel';
+  category: 'food' | 'animals' | 'daily' | 'basics' | 'anime' | 'jlpt5' | 'nature' | 'travel' | 'sentences';
   script: 'hiragana' | 'katakana' | 'mixed';
   difficulty: 1 | 2 | 3;
 }

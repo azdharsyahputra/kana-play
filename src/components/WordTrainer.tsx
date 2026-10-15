@@ -248,6 +248,7 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
               { id: 'anime', label: 'Anime & Pop' },
               { id: 'nature', label: 'Alam' },
               { id: 'jlpt5', label: 'JLPT N5' },
+              { id: 'sentences', label: 'Kalimat & Frasa' },
             ].map((cat) => (
               <button
                 key={cat.id}

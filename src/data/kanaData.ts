@@ -15,7 +15,7 @@ export const KANA_ROWS: KanaRow[] = [
       { id: 'e', romaji: 'e', hiragana: 'え', katakana: 'エ', rowId: 'row-a', groupType: 'main', orderIndex: 4 },
       { id: 'o', romaji: 'o', hiragana: 'お', katakana: 'オ', rowId: 'row-a', groupType: 'main', orderIndex: 5 },
     ],
-  },
+  }, 
   {
     id: 'row-k',
     name: 'K-Row',
