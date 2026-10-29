@@ -2,7 +2,9 @@ export type KanaScript = 'hiragana' | 'katakana' | 'mixed';
 
 export type DrillDirection = 'kana_to_romaji' | 'romaji_to_kana'; // Normal vs Reverse
 
-export type AppTab = 'home' | 'brute-force' | 'free-drill' | 'word-drill' | 'writing-drill' | 'matrix' | 'reference';
+export type AppTab = 'home' | 'brute-force' | 'free-drill' | 'word-drill' | 'writing-drill' | 'matrix' | 'reference' | 'uts-exam';
+
+export * from './uts';
 
 export interface KanaItem {
   id: string; // e.g. "a", "ka", "shi", "kya"
@@ -52,3 +54,5 @@ export interface UserStats {
   kanaMasteryMap: Record<string, KanaMastery>; // key is e.g. "hiragana:ka" or "katakana:ka"
   wordsMastered: string[];
 }
+
+export * from './uts';

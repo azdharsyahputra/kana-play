@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AppTab, DrillDirection, KanaScript, UserStats } from './types';
+import { AppTab, DrillDirection, KanaScript, UserStats, UtsCategory } from './types';
 import { loadUserStats, resetAllUserProgress, saveUserStats } from './utils/storage';
 import { Navbar } from './components/Navbar';
 import { RetroSidebar } from './components/RetroSidebar';
@@ -11,12 +11,14 @@ import { WritingTrainer } from './components/WritingTrainer';
 import { KanaMatrix } from './components/KanaMatrix';
 import { CheatSheet } from './components/CheatSheet';
 import { RetroFooter } from './components/RetroFooter';
+import { UtsExamTrainer } from './components/UtsExamTrainer';
 
 export function App() {
   const [currentTab, setCurrentTab] = useState<AppTab>('home');
   const [script, setScript] = useState<KanaScript>('hiragana');
   const [direction, setDirection] = useState<DrillDirection>('kana_to_romaji');
   const [stats, setStats] = useState<UserStats>(loadUserStats);
+  const [utsCategory, setUtsCategory] = useState<UtsCategory>('all');
   const [selectedLevel, setSelectedLevel] = useState<number>(() => {
     const loaded = loadUserStats();
     return loaded.bruteForceLevel || 1;
@@ -73,6 +75,8 @@ export function App() {
             stats={stats}
             selectedLevel={selectedLevel}
             onSelectLevel={setSelectedLevel}
+            selectedUtsCategory={utsCategory}
+            onSelectUtsCategory={setUtsCategory}
           />
 
           {/* MAIN DRILL WORKSPACE (first on mobile, settings sidebar below) */}
@@ -122,6 +126,14 @@ export function App() {
 
             {currentTab === 'reference' && (
               <CheatSheet />
+            )}
+
+            {currentTab === 'uts-exam' && (
+              <UtsExamTrainer
+                initialCategory={utsCategory}
+                onSelectCategory={setUtsCategory}
+                onBackToHome={() => selectTab('home')}
+              />
             )}
           </div>
         </div>

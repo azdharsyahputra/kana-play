@@ -1,8 +1,8 @@
 import React from 'react';
 import { KANA_ROWS } from '../data/kanaData';
-import type { AppTab, DrillDirection, KanaScript, UserStats } from '../types';
+import type { AppTab, DrillDirection, KanaScript, UserStats, UtsCategory } from '../types';
 import { playKeyClickSound } from '../utils/audio';
-import { ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronRight, Sparkles, GraduationCap, CheckCircle } from 'lucide-react';
 
 interface RetroSidebarProps {
   currentTab: AppTab;
@@ -14,6 +14,8 @@ interface RetroSidebarProps {
   stats: UserStats;
   selectedLevel: number;
   onSelectLevel: (lvl: number) => void;
+  selectedUtsCategory?: UtsCategory;
+  onSelectUtsCategory?: (cat: UtsCategory) => void;
 }
 
 export const RetroSidebar: React.FC<RetroSidebarProps> = ({
@@ -26,9 +28,82 @@ export const RetroSidebar: React.FC<RetroSidebarProps> = ({
   stats,
   selectedLevel,
   onSelectLevel,
+  selectedUtsCategory = 'all',
+  onSelectUtsCategory,
 }) => {
   return (
     <aside className="w-full lg:w-72 space-y-4 select-none shrink-0">
+      {/* KHUSUS TAB UTS EXAM: KONTROL KISI-KISI & KATEGORI */}
+      {currentTab === 'uts-exam' ? (
+        <div className="space-y-4">
+          <div className="retro-card p-3.5 bg-white">
+            <div className="bg-[#d9261c] text-white px-3 py-1.5 rounded-lg font-bungee text-xs uppercase tracking-wider text-center mb-3 shadow-[2px_2px_0px_#0b1a3d] flex items-center justify-center gap-1.5">
+              <GraduationCap className="w-4 h-4 text-[#ffd200]" />
+              <span>KISI-KISI UTS JEPANG</span>
+            </div>
+
+            <div className="space-y-1.5 text-xs font-bold text-[#0b1a3d]">
+              <div className="flex justify-between items-center p-2 bg-[#f6eedf] rounded-lg border border-[#0b1a3d]/20">
+                <span>Komposisi:</span>
+                <span className="font-bungee text-[11px] text-[#0c389c]">75% Hira • 25% Kata</span>
+              </div>
+              <div className="flex justify-between items-center p-2 bg-[#f6eedf] rounded-lg border border-[#0b1a3d]/20">
+                <span>Target Nilai:</span>
+                <span className="font-bungee text-[11px] text-[#047857]">KKM 65 / 100</span>
+              </div>
+              <div className="flex justify-between items-center p-2 bg-[#f6eedf] rounded-lg border border-[#0b1a3d]/20">
+                <span>Materi:</span>
+                <span className="font-bold text-[10px] text-gray-700">Pertemuan 6 (Bab 1 - 8)</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="retro-card p-3.5 bg-white">
+            <div className="text-xs font-black uppercase text-[#0b1a3d] pb-2 border-b-2 border-[#0b1a3d]/20 mb-2.5 flex items-center justify-between">
+              <span>PILIH KATEGORI SOAL</span>
+              <span className="text-[10px] bg-[#ffd200] text-[#0b1a3d] px-1.5 py-0.5 rounded font-bungee">UTS</span>
+            </div>
+
+            <div className="space-y-1.5">
+              {[
+                { id: 'all', label: '🎯 Semua Soal (Simulasi UTS)' },
+                { id: 'particles', label: '🌸 Partikel (wa, ka, no, o, de...)' },
+                { id: 'family_counters', label: '👨‍👩‍👧 Keluarga (Uchi/Soto) & Hitungan' },
+                { id: 'hiragana_daily', label: '🍙 Kosakata Hiragana & Alam' },
+                { id: 'classroom', label: '🏫 Kelas & Benda Sekolah' },
+                { id: 'house_rooms', label: '🏠 Rumah, Ruangan & Perabot' },
+                { id: 'katakana_loan', label: '☕ Katakana Serapan (25%)' },
+              ].map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    playKeyClickSound();
+                    onSelectUtsCategory?.(item.id as UtsCategory);
+                  }}
+                  className={`w-full text-left p-2 rounded-xl border-2 text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
+                    selectedUtsCategory === item.id
+                      ? 'bg-[#ffd200] border-[#0b1a3d] text-[#0b1a3d] shadow-[2px_2px_0px_#0b1a3d] font-black'
+                      : 'bg-white border-[#0b1a3d]/20 text-[#0b1a3d] hover:bg-[#f6eedf]'
+                  }`}
+                >
+                  <span className="truncate pr-1">{item.label}</span>
+                  {selectedUtsCategory === item.id && (
+                    <CheckCircle className="w-3.5 h-3.5 text-[#0c389c] shrink-0" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="retro-card-blue p-3.5 text-center">
+            <h4 className="font-bungee text-xs text-[#ffd200] uppercase">TIPS BELAJAR UTS</h4>
+            <p className="text-[11px] font-heading font-medium text-white/90 mt-1 leading-snug">
+              Bila jawaban salah, baca baik-baik bedah pembahasan yang muncul sebelum menekan tombol lanjut!
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* 1. DRILL SCRIPT & DIRECTION SELECTOR (Toy Style Card) */}
       <div className="retro-card p-3.5 bg-white">
         <div className="bg-[#ffd200] border-2 border-[#0b1a3d] text-[#0b1a3d] px-3 py-1.5 rounded-lg font-bungee text-xs uppercase tracking-wider text-center mb-3 shadow-[2px_2px_0px_#0b1a3d]">
@@ -192,6 +267,8 @@ export const RetroSidebar: React.FC<RetroSidebarProps> = ({
           )}
         </p>
       </div>
+            </>
+      )}
     </aside>
   );
 };
