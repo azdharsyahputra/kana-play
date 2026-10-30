@@ -30,6 +30,8 @@ import {
   Clock,
   Flame,
   AlertTriangle,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -38,6 +40,48 @@ interface UtsExamTrainerProps {
   onSelectCategory?: (cat: UtsCategory) => void;
   onBackToHome?: () => void;
 }
+
+/**
+ * Helper to match user selected option with question's correct answer.
+ * Handles both exact equality and token prefix equality
+ * (e.g. 'と' matches 'と (to) — dan / bersama').
+ */
+export const checkAnswerMatch = (userAns: string, correctAns: string): boolean => {
+  if (!userAns || !correctAns) return false;
+  const cleanA = userAns.trim().toLowerCase();
+  const cleanB = correctAns.trim().toLowerCase();
+  if (cleanA === cleanB) return true;
+
+  const getKanaToken = (s: string) => s.split(/[\s(（—\-–]/)[0].trim().toLowerCase();
+  const tokA = getKanaToken(cleanA);
+  const tokB = getKanaToken(cleanB);
+  return tokA.length > 0 && tokA === tokB;
+};
+
+/**
+ * Extracts pure Japanese kana/word before any romaji parentheses or Indonesian translation
+ * so Web Speech API TTS only pronounces the Japanese text.
+ */
+export const getKanaOnly = (text: string): string => {
+  if (!text) return '';
+  return text.split(/[\s(（—\-–]/)[0].trim();
+};
+
+/**
+ * Parses rich options formatted like "と (to) — dan / bersama"
+ * into structured components { main, romaji, desc }.
+ */
+export const parseOption = (opt: string) => {
+  const match = opt.match(/^([^\s(（]+)(?:\s*[（(]([^)）]+)[)）])?(?:\s*[—\-–]\s*(.+))?$/);
+  if (match) {
+    return {
+      main: match[1],
+      romaji: match[2] || '',
+      desc: match[3] || '',
+    };
+  }
+  return { main: opt, romaji: '', desc: '' };
+};
 
 export const UtsExamTrainer: React.FC<UtsExamTrainerProps> = ({
   initialCategory = 'all',
@@ -58,6 +102,9 @@ export const UtsExamTrainer: React.FC<UtsExamTrainerProps> = ({
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [streak, setStreak] = useState<number>(0);
   const [bestStreak, setBestStreak] = useState<number>(0);
+
+  // Pedagogical toggles
+  const [showRomaji, setShowRomaji] = useState<boolean>(true);
 
   // Answers history for grading
   const [answersHistory, setAnswersHistory] = useState<
@@ -168,7 +215,7 @@ export const UtsExamTrainer: React.FC<UtsExamTrainerProps> = ({
     setSelectedAnswer(option);
     setIsAnswerSubmitted(true);
 
-    const correct = option.trim() === currentQuestion.correctAnswer.trim();
+    const correct = checkAnswerMatch(option, currentQuestion.correctAnswer);
     setIsCorrect(correct);
 
     // Record answer
@@ -182,6 +229,8 @@ export const UtsExamTrainer: React.FC<UtsExamTrainerProps> = ({
     ];
     setAnswersHistory(newHistory);
 
+    const kanaPart = getKanaOnly(currentQuestion.correctAnswer);
+
     if (correct) {
       const nextStreak = streak + 1;
       setStreak(nextStreak);
@@ -190,9 +239,11 @@ export const UtsExamTrainer: React.FC<UtsExamTrainerProps> = ({
 
       // Play audio pronunciation of the word / sentence
       if (currentQuestion.category === 'particles') {
-        speakJapaneseSentence(currentQuestion.prompt, currentQuestion.correctAnswer);
+        const sentenceWithAnswer = currentQuestion.prompt
+          .replace(/\[\s*＿＿\s*\]|（\s*）/g, kanaPart);
+        speakJapaneseSentence(sentenceWithAnswer, kanaPart);
       } else {
-        speakJapanese(currentQuestion.audioText || currentQuestion.correctAnswer);
+        speakJapanese(currentQuestion.audioText || kanaPart);
       }
 
       // Small confetti when streak hits multiples of 5
@@ -218,9 +269,9 @@ export const UtsExamTrainer: React.FC<UtsExamTrainerProps> = ({
 
       // 2. Pronounce the correct answer for learning
       if (currentQuestion.category === 'particles') {
-        speakJapaneseParticle(currentQuestion.correctAnswer);
+        speakJapaneseParticle(kanaPart);
       } else {
-        speakJapanese(currentQuestion.audioText || currentQuestion.correctAnswer);
+        speakJapanese(currentQuestion.audioText || kanaPart);
       }
 
       // 3. Save to localStorage mistakes
@@ -313,10 +364,12 @@ export const UtsExamTrainer: React.FC<UtsExamTrainerProps> = ({
   // Audio helper for prompt / option
   const handlePlayAudio = (e: React.MouseEvent, text: string, isParticle = false) => {
     e.stopPropagation();
+    unlockAudio();
+    const kana = getKanaOnly(text);
     if (isParticle) {
-      speakJapaneseParticle(text);
+      speakJapaneseParticle(kana);
     } else {
-      speakJapanese(text);
+      speakJapanese(currentQuestion?.audioText || kana);
     }
   };
 
@@ -358,15 +411,15 @@ export const UtsExamTrainer: React.FC<UtsExamTrainerProps> = ({
             </div>
           </div>
 
-          {/* SYLLABUS SPECIFICATIONS */}
+          {/* SYLLABUS FEATURE HIGHLIGHTS */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 my-5">
             <div className="p-3 bg-[#f6eedf] rounded-xl border-2 border-[#0b1a3d]">
               <div className="flex items-center gap-2 text-[#0c389c] font-bungee text-xs">
                 <Sparkles className="w-4 h-4 text-[#ffd200]" />
-                <span>KOMPOSISI UTS</span>
+                <span>FORMAT UTS ASLI</span>
               </div>
               <p className="text-xs font-bold text-[#0b1a3d] mt-1.5 leading-snug">
-                75% Hiragana (Partikel wa/ka/mo/no/ga/ni/to/o/de/e, Keluarga, Sekolah, Rumah) & 25% Katakana benda modern.
+                Disertai konteks kalimat, arti bahasa Indonesia, cara baca romaji, dan glosarium kosakata pembantu agar mudah dipahami.
               </p>
             </div>
 
@@ -410,35 +463,35 @@ export const UtsExamTrainer: React.FC<UtsExamTrainerProps> = ({
                   id: 'particles',
                   title: '🌸 PARTIKEL DASAR (HAL 1)',
                   desc: 'は (wa), か, も, の, が, に, と, を (o), で, へ (e) dalam kalimat.',
-                  badge: '20+ SOAL',
+                  badge: '20 SOAL',
                   color: 'border-[#d9261c]',
                 },
                 {
                   id: 'family_counters',
                   title: '👨‍👩‍👧 KELUARGA & HITUNGAN (HAL 2-5)',
                   desc: 'Uchi (chichi/haha) vs Soto (otoosan/okaasan) & ひとり/ふたり/よにん.',
-                  badge: '25+ SOAL',
+                  badge: '15 SOAL',
                   color: 'border-[#ffd200]',
                 },
                 {
                   id: 'hiragana_daily',
                   title: '🍙 HIRAGANA & ALAM (HAL 6-7)',
                   desc: 'あさ/ひる/よる, いぬ/ねこ, とけい, ざっし, とうきょう & huruf mirip.',
-                  badge: '30+ SOAL',
+                  badge: '10 SOAL',
                   color: 'border-[#10b981]',
                 },
                 {
                   id: 'classroom',
                   title: '🏫 KELAS & SEKOLAH (HAL 10-11)',
                   desc: 'がくせい, せんせい, きょうしつ, じゅぎょう, つくえ, けしごむ, じしょ.',
-                  badge: '20+ SOAL',
+                  badge: '8 SOAL',
                   color: 'border-[#6366f1]',
                 },
                 {
                   id: 'house_rooms',
                   title: '🏠 RUMAH & PERABOT (HAL 12-16)',
                   desc: 'いっこだて, げんかん, だいどころ, おふろ, そうじき, れいぞうこ.',
-                  badge: '25+ SOAL',
+                  badge: '8 SOAL',
                   color: 'border-[#ec4899]',
                 },
                 {
@@ -526,7 +579,7 @@ export const UtsExamTrainer: React.FC<UtsExamTrainerProps> = ({
   }
 
   // =========================================================================
-  // RENDER: 2. ACTIVE QUESTION SCREEN
+  // RENDER: 2. ACTIVE EXAM RUNNER
   // =========================================================================
   if (isExamRunning && currentQuestion) {
     const questionNumber = currentIndex + 1;
@@ -594,6 +647,51 @@ export const UtsExamTrainer: React.FC<UtsExamTrainerProps> = ({
 
         {/* QUESTION CARD */}
         <div className="retro-card p-5 sm:p-7 bg-white relative">
+          {/* 1. TARGET INDONESIAN TRANSLATION & CONTEXT BOX (SHOWN BEFORE ANSWERING) */}
+          <div className="bg-[#eff6ff] border-2 border-[#0284c7] rounded-xl p-3.5 sm:p-4 mb-3 shadow-[2px_2px_0px_#0284c7]">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-[11px] font-black uppercase text-[#0369a1] tracking-wider flex items-center gap-1.5">
+                <span className="text-base">🇮🇩</span> MAKSUD / ARTI KALIMAT TARGET:
+              </span>
+              {currentQuestion.pdfReference && (
+                <span className="text-[10px] font-bold text-gray-500 bg-white/90 px-2 py-0.5 rounded border border-[#0284c7]/30">
+                  {currentQuestion.pdfReference}
+                </span>
+              )}
+            </div>
+            <p className="text-base sm:text-xl font-heading font-black text-[#0b1a3d]">
+              "{currentQuestion.indonesianMeaning}"
+            </p>
+            {currentQuestion.hint && (
+              <div className="text-xs font-bold text-[#0369a1] mt-1.5 flex items-start gap-1.5 pt-1.5 border-t border-[#0284c7]/20">
+                <span className="shrink-0 font-black">💡 Petunjuk:</span>
+                <span>{currentQuestion.hint}</span>
+              </div>
+            )}
+          </div>
+
+          {/* 2. MINI GLOSSARY / VOCABULARY HELPER (SHOWN BEFORE ANSWERING) */}
+          {currentQuestion.vocabHelper && (
+            <div className="bg-[#fefce8] border-2 border-[#eab308] rounded-xl p-3 mb-3 shadow-[2px_2px_0px_#ca8a04]">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-black uppercase text-[#854d0e] flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-[#ca8a04]" />
+                  <span>BANTUAN KOSAKATA PENTING:</span>
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {currentQuestion.vocabHelper.split('•').map((item, i) => (
+                  <span
+                    key={i}
+                    className="text-xs font-bold text-[#713f12] bg-white px-2.5 py-1 rounded-lg border border-[#eab308]/40 shadow-sm"
+                  >
+                    {item.trim()}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Subprompt / Instruction */}
           {currentQuestion.subPrompt && (
             <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 mb-2">
@@ -602,11 +700,28 @@ export const UtsExamTrainer: React.FC<UtsExamTrainerProps> = ({
             </div>
           )}
 
-          {/* MAIN PROMPT TEXT */}
+          {/* 3. MAIN JAPANESE PROMPT BOX (SPACED KANA + AUDIO + ROMAJI) */}
           <div className="p-4 sm:p-6 bg-[#f6eedf] rounded-2xl border-2 border-[#0b1a3d] text-center my-3 shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] relative">
-            <h3 className="font-bungee text-2xl sm:text-4xl text-[#0b1a3d] tracking-wide break-words">
+            <h3 className="font-bungee text-2xl sm:text-4xl text-[#0b1a3d] tracking-wide break-words py-2 leading-relaxed">
               {currentQuestion.prompt}
             </h3>
+
+            {/* Cara Baca (Romaji) Always Available */}
+            {showRomaji && currentQuestion.romaji && (
+              <div className="mt-2 text-xs sm:text-sm font-mono font-bold text-[#0c389c] bg-white/80 py-1 px-3 rounded-lg inline-block border border-[#0b1a3d]/20">
+                Cara baca: <span className="underline decoration-wavy decoration-[#ffd200]">{currentQuestion.romaji}</span>
+              </div>
+            )}
+
+            {/* Romaji toggle button */}
+            <button
+              onClick={() => setShowRomaji(prev => !prev)}
+              title="Aktifkan/Matikan Romaji"
+              className="absolute top-2 left-2 px-2 py-1 bg-white rounded-lg border border-[#0b1a3d]/30 text-[10px] font-black text-[#0b1a3d] hover:bg-[#ffd200] transition-all flex items-center gap-1"
+            >
+              {showRomaji ? <Eye className="w-3 h-3 text-[#0c389c]" /> : <EyeOff className="w-3 h-3 text-gray-400" />}
+              <span>{showRomaji ? 'ROMAJI: ON' : 'ROMAJI: OFF'}</span>
+            </button>
 
             {/* Audio Button on Prompt */}
             <button
@@ -618,26 +733,27 @@ export const UtsExamTrainer: React.FC<UtsExamTrainerProps> = ({
                 )
               }
               title="Dengarkan pengucapan audio"
-              className="absolute top-2 right-2 p-2 bg-white rounded-xl border border-[#0b1a3d]/30 hover:bg-[#ffd200] text-[#0b1a3d] cursor-pointer transition-all"
+              className="absolute top-2 right-2 p-2 bg-white rounded-xl border border-[#0b1a3d]/30 hover:bg-[#ffd200] text-[#0b1a3d] cursor-pointer transition-all shadow-[2px_2px_0px_#0b1a3d]"
             >
               <Volume2 className="w-4 h-4" />
             </button>
           </div>
 
-          {/* 4 CHOICES (A, B, C, D) */}
+          {/* 4. CHOICES (A, B, C, D) WITH INFORMATIVE MEANING */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
             {currentQuestion.options.map((opt, idx) => {
               const optLabel = String.fromCharCode(65 + idx); // A, B, C, D
               const isSelected = selectedAnswer === opt;
-              const isOptionCorrect = opt.trim() === currentQuestion.correctAnswer.trim();
+              const isOptionMatch = checkAnswerMatch(opt, currentQuestion.correctAnswer);
+              const parsed = parseOption(opt);
 
-              let buttonStyle = 'bg-white border-[#0b1a3d] text-[#0b1a3d] hover:bg-[#f6eedf]';
+              let buttonStyle = 'bg-white border-[#0b1a3d] text-[#0b1a3d] hover:bg-[#f6eedf] hover:border-[#0c389c]';
 
               if (isAnswerSubmitted) {
-                if (isOptionCorrect) {
+                if (isOptionMatch) {
                   // CORRECT ANSWER: Emerald Green
                   buttonStyle =
-                    'bg-[#d1fae5] border-[#047857] text-[#065f46] shadow-[0_0_0_2px_#047857] font-black';
+                    'bg-[#d1fae5] border-[#047857] text-[#065f46] shadow-[0_0_0_2px_#047857] font-black scale-[1.01]';
                 } else if (isSelected && !isCorrect) {
                   // WRONG SELECTED ANSWER: Bright Red
                   buttonStyle =
@@ -652,25 +768,39 @@ export const UtsExamTrainer: React.FC<UtsExamTrainerProps> = ({
                   key={idx}
                   disabled={isAnswerSubmitted}
                   onClick={() => handleAnswer(opt)}
-                  className={`p-3.5 sm:p-4 rounded-xl border-2 text-left font-bold transition-all flex items-center justify-between cursor-pointer ${buttonStyle}`}
+                  className={`p-3 sm:p-4 rounded-xl border-2 text-left font-bold transition-all flex items-center justify-between cursor-pointer ${buttonStyle}`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-[#0b1a3d] text-white font-bungee text-xs flex items-center justify-center shrink-0">
+                    <span className="w-8 h-8 rounded-lg bg-[#0b1a3d] text-white font-bungee text-xs flex items-center justify-center shrink-0 shadow-[1px_1px_0px_rgba(0,0,0,0.3)]">
                       {optLabel}
                     </span>
-                    <span className="font-heading text-base sm:text-lg text-[#0b1a3d] font-black">
-                      {opt}
-                    </span>
+                    <div className="flex flex-col text-left">
+                      <div className="flex items-center gap-2">
+                        <span className="font-heading text-lg sm:text-xl text-[#0b1a3d] font-black">
+                          {parsed.main}
+                        </span>
+                        {parsed.romaji && (
+                          <span className="text-xs font-mono font-bold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-300">
+                            {parsed.romaji}
+                          </span>
+                        )}
+                      </div>
+                      {parsed.desc && (
+                        <span className="text-xs font-bold text-gray-600 mt-0.5">
+                          {parsed.desc}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  {isAnswerSubmitted && isOptionCorrect && (
-                    <span className="bg-[#10b981] text-white text-[11px] font-black px-2 py-0.5 rounded flex items-center gap-1">
+                  {isAnswerSubmitted && isOptionMatch && (
+                    <span className="bg-[#10b981] text-white text-[11px] font-black px-2 py-1 rounded flex items-center gap-1 shrink-0">
                       <CheckCircle2 className="w-3.5 h-3.5" /> BENAR
                     </span>
                   )}
 
                   {isAnswerSubmitted && isSelected && !isCorrect && (
-                    <span className="bg-[#d9261c] text-white text-[11px] font-black px-2 py-0.5 rounded flex items-center gap-1">
+                    <span className="bg-[#d9261c] text-white text-[11px] font-black px-2 py-1 rounded flex items-center gap-1 shrink-0">
                       <XCircle className="w-3.5 h-3.5" /> SALAH
                     </span>
                   )}
@@ -679,7 +809,7 @@ export const UtsExamTrainer: React.FC<UtsExamTrainerProps> = ({
             })}
           </div>
 
-          {/* IN-DEPTH EXPLANATION DRAWER WHEN ANSWERED */}
+          {/* 5. IN-DEPTH EXPLANATION DRAWER WHEN ANSWERED */}
           {isAnswerSubmitted && (
             <div
               className={`p-4 sm:p-5 rounded-2xl border-2 mt-5 transition-all ${

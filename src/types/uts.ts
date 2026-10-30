@@ -27,6 +27,8 @@ export interface UtsQuestion {
   correctAnswer: string;         // The correct answer string
   romaji?: string;               // Romaji transcription
   indonesianMeaning: string;     // Indonesian translation / meaning
+  vocabHelper?: string;          // Key vocabulary guide (e.g. "chichi = ayah • haha = ibu")
+  hint?: string;                 // Contextual hint
   explanation: string;           // In-depth explanation for learning
   pdfReference?: string;         // Page reference in PDF Pertemuan 6
 }
