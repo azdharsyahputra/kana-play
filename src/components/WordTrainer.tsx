@@ -4,7 +4,7 @@ import type { DrillDirection, UserStats, WordItem } from '../types';
 import { KanaKeyboard } from './KanaKeyboard';
 import { playCorrectSound, playIncorrectSound, speakJapanese, playKeyClickSound } from '../utils/audio';
 import { saveUserStats } from '../utils/storage';
-import { Volume2, BookOpen, AlertCircle, Filter, Sparkles, Layers } from 'lucide-react';
+import { Volume2, BookOpen, AlertCircle, Filter, Sparkles, Star, Tag } from 'lucide-react';
 
 interface WordTrainerProps {
   stats: UserStats;
@@ -20,7 +20,7 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
   onSelectDirection,
 }) => {
   const [selectedScriptFilter, setSelectedScriptFilter] = useState<'all' | 'hiragana' | 'katakana'>('hiragana');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('uts_target'); // Default to UTS target for instant review!
   
   const [currentWord, setCurrentWord] = useState<WordItem | null>(null);
   const [inputVal, setInputVal] = useState('');
@@ -31,11 +31,67 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const lastWordIdRef = useRef<string | null>(null);
 
+  const utsCategories = [
+    { id: 'uts_target', label: '⭐ Semua Target UTS (P6)' },
+    { id: 'classroom', label: '🏫 Benda Kelas (Kursi, Meja, dll)' },
+    { id: 'house_furniture', label: '🛋️ Rumah & Perabot' },
+    { id: 'electronics', label: '⚡ Elektronik & Alat Listrik' },
+    { id: 'family', label: '👨‍👩‍👧‍👦 Keluarga & Sebutan' },
+    { id: 'katakana_loan', label: '🔤 Katakana Serapan (UTS)' },
+    { id: 'uts_reading', label: '🎯 Target Membaca Hal 6-7' },
+  ];
+
+  const generalCategories = [
+    { id: 'all', label: 'Semua Kosakata (Full Bank)' },
+    { id: 'basics', label: 'Dasar & Salam' },
+    { id: 'daily', label: 'Benda Harian' },
+    { id: 'food', label: 'Makanan' },
+    { id: 'animals', label: 'Hewan' },
+    { id: 'nature', label: 'Alam' },
+    { id: 'anime', label: 'Anime & Pop' },
+    { id: 'jlpt5', label: 'JLPT N5' },
+    { id: 'sentences', label: 'Kalimat & Frasa' },
+  ];
+
   const filteredWords = JAPANESE_WORDS.filter(w => {
-    const matchScript = selectedScriptFilter === 'all' || w.script === selectedScriptFilter;
-    const matchCat = selectedCategory === 'all' || w.category === selectedCategory;
+    const matchScript =
+      selectedScriptFilter === 'all' ||
+      w.script === selectedScriptFilter;
+
+    let matchCat = false;
+    if (selectedCategory === 'all') {
+      matchCat = true;
+    } else if (selectedCategory === 'uts_target') {
+      matchCat = Boolean(w.isUts);
+    } else {
+      matchCat =
+        w.category === selectedCategory ||
+        Boolean(w.subCategories && w.subCategories.includes(selectedCategory));
+    }
+
     return matchScript && matchCat;
   });
+
+  const getCategoryCount = (catId: string) => {
+    return JAPANESE_WORDS.filter(w => {
+      const matchScript =
+        selectedScriptFilter === 'all' ||
+        w.script === selectedScriptFilter;
+
+      let matchCat = false;
+      if (catId === 'all') {
+        matchCat = true;
+      } else if (catId === 'uts_target') {
+        matchCat = Boolean(w.isUts);
+      } else {
+        matchCat =
+          w.category === catId ||
+          Boolean(w.subCategories && w.subCategories.includes(catId));
+      }
+
+      return matchScript && matchCat;
+    }).length;
+  };
 
   const pickNextWord = (prevId?: string) => {
     const basePool = filteredWords.length > 0 ? filteredWords : JAPANESE_WORDS;
@@ -50,9 +106,9 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
     }
 
     const randomWord = pool[Math.floor(Math.random() * pool.length)];
-    lastWordIdRef.current = randomWord.id;
+    lastWordIdRef.current = randomWord ? randomWord.id : null;
 
-    setCurrentWord(randomWord);
+    setCurrentWord(randomWord || null);
     setInputVal('');
     setKanaBuffer('');
     setFeedback(null);
@@ -73,7 +129,7 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
 
     if (direction === 'kana_to_romaji') {
       // Normal: user inputs romaji
-      isCorrect = checkWordRomajiMatch(submittedStr, currentWord.romaji);
+      isCorrect = checkWordRomajiMatch(submittedStr, currentWord.romaji, currentWord.altRomaji);
     } else {
       // Reverse: user inputs kana sequence
       const cleanKanaStr = (s: string) => s.replace(/[\s\-_ー.,?!~〜。、！？\(\)\[\]]/g, '');
@@ -170,8 +226,6 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [direction, kanaBuffer, currentWord]);
 
-  if (!currentWord) return null;
-
   return (
     <div className="w-full flex flex-col gap-4">
       {/* 1. SCRIPT & CATEGORY CONTROLS BANNER */}
@@ -186,7 +240,7 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
                 ★ JAPANESE WORD DRILL ★
               </h2>
               <p className="text-xs font-bold text-gray-500 mt-1">
-                Tersedia {filteredWords.length} kosakata aktif untuk dilatih
+                Tersedia <span className="text-[#0c389c] font-black">{filteredWords.length}</span> kosakata aktif untuk dilatih
               </p>
             </div>
           </div>
@@ -235,210 +289,285 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
           </div>
         </div>
 
-        {/* BOTTOM ROW: DIRECTION & CATEGORY PILLS */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-1.5 items-center">
-            <span className="text-[11px] font-black uppercase text-gray-500 mr-1 flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5" /> Kategori:
+        {/* DIRECTION & CATEGORY SECTION */}
+        <div className="flex flex-col gap-3">
+          {/* DIRECTION SELECTOR ROW */}
+          <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-100">
+            <span className="text-xs font-black uppercase text-gray-500 flex items-center gap-1">
+              <Tag className="w-3.5 h-3.5" /> Mode Latihan:
             </span>
-            {[
-              { id: 'all', label: 'Semua Kategori' },
-              { id: 'basics', label: 'Dasar & Salam' },
-              { id: 'food', label: 'Makanan' },
-              { id: 'animals', label: 'Hewan' },
-              { id: 'daily', label: 'Benda Harian' },
-              { id: 'anime', label: 'Anime & Pop' },
-              { id: 'nature', label: 'Alam' },
-              { id: 'jlpt5', label: 'JLPT N5' },
-              { id: 'sentences', label: 'Kalimat & Frasa' },
-            ].map((cat) => (
+            <div className="flex items-center gap-1 bg-[#f6eedf] p-1 rounded-xl border-2 border-[#0b1a3d]">
               <button
-                key={cat.id}
                 onClick={() => {
                   playKeyClickSound();
-                  setSelectedCategory(cat.id);
+                  onSelectDirection('kana_to_romaji');
                 }}
-                className={`px-2.5 py-1 text-xs font-heading font-bold rounded-lg border transition-all ${
-                  selectedCategory === cat.id
-                    ? 'bg-[#ffd200] border-[#0b1a3d] text-[#0b1a3d] font-black shadow-[2px_2px_0px_#0b1a3d]'
-                    : 'bg-white border-gray-300 text-gray-600 hover:border-[#0b1a3d]'
+                className={`px-3 py-1 text-xs font-heading font-black rounded-lg transition-all ${
+                  direction === 'kana_to_romaji'
+                    ? 'bg-[#0c389c] text-white shadow-[1px_1px_0px_#0b1a3d]'
+                    : 'text-[#0b1a3d] hover:bg-white'
                 }`}
               >
-                {cat.label}
+                🎯 Normal (Baca Kana)
               </button>
-            ))}
+              <button
+                onClick={() => {
+                  playKeyClickSound();
+                  onSelectDirection('romaji_to_kana');
+                }}
+                className={`px-3 py-1 text-xs font-heading font-black rounded-lg transition-all ${
+                  direction === 'romaji_to_kana'
+                    ? 'bg-[#d9261c] text-white shadow-[1px_1px_0px_#0b1a3d]'
+                    : 'text-[#0b1a3d] hover:bg-white'
+                }`}
+              >
+                ⚡ Reverse Keypad (Susun Huruf)
+              </button>
+            </div>
           </div>
 
-          {/* Direction Pill */}
-          <div className="flex items-center gap-1 bg-[#f6eedf] p-1 rounded-xl border-2 border-[#0b1a3d] shrink-0">
-            <button
-              onClick={() => {
-                playKeyClickSound();
-                onSelectDirection('kana_to_romaji');
-              }}
-              className={`px-2.5 py-1 text-xs font-heading font-black rounded-lg transition-all ${
-                direction === 'kana_to_romaji'
-                  ? 'bg-[#0c389c] text-white shadow-[1px_1px_0px_#0b1a3d]'
-                  : 'text-[#0b1a3d] hover:bg-white'
-              }`}
-            >
-              Normal
-            </button>
-            <button
-              onClick={() => {
-                playKeyClickSound();
-                onSelectDirection('romaji_to_kana');
-              }}
-              className={`px-2.5 py-1 text-xs font-heading font-black rounded-lg transition-all ${
-                direction === 'romaji_to_kana'
-                  ? 'bg-[#d9261c] text-white shadow-[1px_1px_0px_#0b1a3d]'
-                  : 'text-[#0b1a3d] hover:bg-white'
-              }`}
-            >
-              ⚡ Reverse Keypad
-            </button>
+          {/* SECTION 1: UTS & PERTEMUAN 6 CATEGORIES (HIGHLIGHTED) */}
+          <div className="p-2.5 sm:p-3 bg-[#fff1f2] border-2 border-[#d9261c]/30 rounded-xl">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-black uppercase text-[#d9261c] flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4" /> KATEGORI FOKUS UTS (PERTEMUAN 6 - BUKU AJAR):
+              </span>
+              <span className="text-[10px] font-bold text-[#d9261c]/80 bg-white/70 px-2 py-0.5 rounded-full border border-[#d9261c]/20 hidden sm:inline">
+                Sesuai Soal Latihan & PDF Pertemuan 6
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 items-center">
+              {utsCategories.map((cat) => {
+                const count = getCategoryCount(cat.id);
+                const isSelected = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      playKeyClickSound();
+                      setSelectedCategory(cat.id);
+                    }}
+                    className={`px-2.5 py-1 text-xs font-heading font-black rounded-lg border transition-all flex items-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-[#d9261c] border-[#73130d] text-white shadow-[2px_2px_0px_#0b1a3d]'
+                        : 'bg-white border-[#d9261c]/30 text-[#991b1b] hover:bg-[#ffe4e6]'
+                    }`}
+                  >
+                    <span>{cat.label}</span>
+                    <span
+                      className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-[#fee2e2] text-[#991b1b]'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* SECTION 2: GENERAL CATEGORIES */}
+          <div className="flex flex-wrap gap-1.5 items-center pt-1">
+            <span className="text-[11px] font-black uppercase text-gray-500 mr-1 flex items-center gap-1 shrink-0">
+              <Filter className="w-3.5 h-3.5" /> Kategori Umum:
+            </span>
+            {generalCategories.map((cat) => {
+              const count = getCategoryCount(cat.id);
+              const isSelected = selectedCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => {
+                    playKeyClickSound();
+                    setSelectedCategory(cat.id);
+                  }}
+                  className={`px-2 py-0.5 text-xs font-heading font-bold rounded-lg border transition-all flex items-center gap-1 ${
+                    isSelected
+                      ? 'bg-[#ffd200] border-[#0b1a3d] text-[#0b1a3d] font-black shadow-[2px_2px_0px_#0b1a3d]'
+                      : 'bg-white border-gray-300 text-gray-600 hover:border-[#0b1a3d]'
+                  }`}
+                >
+                  <span>{cat.label}</span>
+                  <span className="text-[10px] text-gray-400">({count})</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
       {/* 2. MAIN WORD DRILL QUESTION CARD */}
-      <div className="retro-card bg-white p-4 sm:p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
-        
-        {/* Top Badges */}
-        <div className="self-stretch pr-12 sm:pr-0 sm:absolute sm:top-3 sm:left-4 sm:right-16 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span
-            className={`text-xs font-black uppercase px-2.5 py-1 rounded-md border ${
-              direction === 'romaji_to_kana'
-                ? 'bg-[#d9261c] text-white border-[#73130d]'
-                : 'bg-[#0c389c] text-white border-[#071e54]'
-            }`}
+      {!currentWord ? (
+        <div className="retro-card bg-white p-8 text-center flex flex-col items-center gap-3">
+          <AlertCircle className="w-10 h-10 text-[#d9261c]" />
+          <h3 className="text-lg font-bungee text-[#0b1a3d]">TIDAK ADA KOSAKATA DENGAN FILTER INI</h3>
+          <p className="text-sm font-bold text-gray-600 max-w-md">
+            Kategori ini tidak memiliki kosakata untuk filter <strong className="text-[#0c389c]">{selectedScriptFilter.toUpperCase()}</strong>.
+            Silakan ubah filter ke <strong>ひらがな</strong> atau <strong>Campur</strong>.
+          </p>
+          <button
+            onClick={() => {
+              playKeyClickSound();
+              setSelectedScriptFilter('all');
+            }}
+            className="retro-btn retro-btn-yellow px-5 py-2 text-xs font-heading font-black shadow-[2px_2px_0px_#0b1a3d]"
           >
-            {direction === 'romaji_to_kana' ? '⚡ REVERSE WORD DRILL' : '🎯 NORMAL WORD DRILL'}
-          </span>
-          <span className="text-xs font-black uppercase bg-[#ffd200] text-[#0b1a3d] border border-[#0b1a3d] px-2 py-0.5 rounded">
-            {currentWord.script === 'katakana' ? 'KATAKANA' : 'HIRAGANA'}
-          </span>
+            Buka Semua Huruf (Campur)
+          </button>
         </div>
+      ) : (
+        <div className="retro-card bg-white p-4 sm:p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
+          
+          {/* Top Badges */}
+          <div className="self-stretch pr-12 sm:pr-0 sm:absolute sm:top-3 sm:left-4 sm:right-16 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span
+              className={`text-xs font-black uppercase px-2.5 py-1 rounded-md border ${
+                direction === 'romaji_to_kana'
+                  ? 'bg-[#d9261c] text-white border-[#73130d]'
+                  : 'bg-[#0c389c] text-white border-[#071e54]'
+              }`}
+            >
+              {direction === 'romaji_to_kana' ? '⚡ REVERSE WORD DRILL' : '🎯 NORMAL WORD DRILL'}
+            </span>
+            <span className="text-xs font-black uppercase bg-[#ffd200] text-[#0b1a3d] border border-[#0b1a3d] px-2 py-0.5 rounded">
+              {currentWord.script === 'katakana' ? 'KATAKANA' : currentWord.script === 'hiragana' ? 'HIRAGANA' : 'CAMPUR'}
+            </span>
+            {currentWord.isUts && (
+              <span className="text-xs font-black uppercase bg-[#ff4757] text-white border border-[#991b1b] px-2 py-0.5 rounded flex items-center gap-1 shadow-sm">
+                <Star className="w-3 h-3 fill-current" /> TARGET UTS (P6)
+              </span>
+            )}
+          </div>
 
-        {/* Audio Button */}
-        <button
-          onClick={() => speakJapanese(currentWord.kana)}
-          title="Dengarkan Pengucapan Asli"
-          className="absolute top-3 right-4 retro-btn retro-btn-white p-2 rounded-lg text-[#0c389c] flex items-center gap-1 shadow-[2px_2px_0px_#0b1a3d]"
-        >
-          <Volume2 className="w-4 h-4" />
-          <span className="text-[10px] hidden sm:inline">AUDIO</span>
-        </button>
+          {/* Audio Button */}
+          <button
+            onClick={() => speakJapanese(currentWord.kana)}
+            title="Dengarkan Pengucapan Asli"
+            className="absolute top-3 right-4 retro-btn retro-btn-white p-2 rounded-lg text-[#0c389c] flex items-center gap-1 shadow-[2px_2px_0px_#0b1a3d]"
+          >
+            <Volume2 className="w-4 h-4" />
+            <span className="text-[10px] hidden sm:inline">AUDIO</span>
+          </button>
 
-        {/* WORD DISPLAY */}
-        <div className="my-4 sm:my-6">
-          {direction === 'kana_to_romaji' ? (
-            // NORMAL: Show Kana Word
-            <div className="flex flex-col items-center">
-              {currentWord.kanji && (
-                <span className="text-xl sm:text-2xl font-bold text-gray-400 font-kana mb-1">
-                  [{currentWord.kanji}]
+          {/* WORD DISPLAY */}
+          <div className="my-4 sm:my-6 flex flex-col items-center">
+            {direction === 'kana_to_romaji' ? (
+              // NORMAL: Show Kana Word
+              <div className="flex flex-col items-center">
+                {currentWord.kanji && (
+                  <span className="text-xl sm:text-2xl font-bold text-gray-400 font-kana mb-1">
+                    [{currentWord.kanji}]
+                  </span>
+                )}
+                <div
+                  className={`text-5xl sm:text-7xl font-bold font-kana select-none text-[#0b1a3d] tracking-wider transition-transform ${
+                    feedback === 'correct'
+                      ? 'animate-retro-pop text-[#10b981]'
+                      : feedback === 'incorrect'
+                      ? 'animate-retro-shake text-[#d9261c]'
+                      : ''
+                  }`}
+                >
+                  {currentWord.kana}
+                </div>
+                <div className="mt-2.5 text-sm font-extrabold text-[#d9261c] bg-[#ffe4e6] px-3.5 py-1 rounded-full border border-[#d9261c]/30">
+                  Arti: {currentWord.indonesian} / {currentWord.english}
+                </div>
+              </div>
+            ) : (
+              // REVERSE: Show Romaji + Meaning
+              <div className="flex flex-col items-center">
+                <span className="text-xs font-black uppercase text-[#0c389c] tracking-widest mb-1">
+                  SUSUN HURUF {currentWord.script === 'katakana' ? 'KATAKANA' : 'HIRAGANA'} UNTUK KATA:
                 </span>
-              )}
-              <div
-                className={`text-5xl sm:text-7xl font-bold font-kana select-none text-[#0b1a3d] tracking-wider transition-transform ${
-                  feedback === 'correct'
-                    ? 'animate-retro-pop text-[#10b981]'
-                    : feedback === 'incorrect'
-                    ? 'animate-retro-shake text-[#d9261c]'
-                    : ''
-                }`}
-              >
-                {currentWord.kana}
+                <div
+                  className={`text-4xl sm:text-6xl font-black font-bungee tracking-wide text-[#0b1a3d] transition-transform ${
+                    feedback === 'correct'
+                      ? 'animate-retro-pop text-[#10b981]'
+                      : feedback === 'incorrect'
+                      ? 'animate-retro-shake text-[#d9261c]'
+                      : ''
+                  }`}
+                >
+                  {currentWord.romaji.toUpperCase()}
+                </div>
+                <div className="mt-2 text-base font-extrabold text-[#0c389c] bg-[#e0e7ff] px-4 py-1 rounded-full border border-[#0c389c]/30">
+                  Arti: {currentWord.indonesian} ({currentWord.english})
+                </div>
               </div>
-              <div className="mt-2.5 text-sm font-extrabold text-[#d9261c] bg-[#ffe4e6] px-3.5 py-1 rounded-full border border-[#d9261c]/30">
-                Arti: {currentWord.indonesian} / {currentWord.english}
+            )}
+
+            {/* Visual Trap / Helpful Notes for UTS Preparation */}
+            {currentWord.notes && (
+              <div className="mt-3 text-xs font-bold text-[#0b1a3d] bg-[#f6eedf] px-3.5 py-1.5 rounded-xl border border-[#0b1a3d]/20 max-w-lg shadow-sm flex items-start gap-1.5 text-left">
+                <span className="shrink-0 text-sm">💡</span>
+                <span>{currentWord.notes}</span>
               </div>
+            )}
+          </div>
+
+          {/* INPUT SECTION */}
+          {direction === 'kana_to_romaji' ? (
+            // NORMAL MODE INPUT (Typing Romaji)
+            <div className="w-full max-w-md space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputVal}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setInputVal(val);
+                    if (checkWordRomajiMatch(val, currentWord.romaji, currentWord.altRomaji)) {
+                      handleSubmit(val);
+                    }
+                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSubmit(inputVal)}
+                  placeholder="Ketik romaji (contoh: isu, tsukue)..."
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  className="w-full text-center text-2xl font-black font-mono py-3 px-4 rounded-xl border-3 border-[#0b1a3d] bg-[#f6eedf] focus:bg-white text-[#0b1a3d] shadow-[4px_4px_0px_#0b1a3d] outline-none"
+                />
+                <button
+                  onClick={() => handleSubmit(inputVal)}
+                  className="retro-btn retro-btn-yellow py-3.5 px-5 text-sm shrink-0"
+                >
+                  OK
+                </button>
+              </div>
+              <p className="text-[11px] font-bold text-gray-500">
+                Ketik bacaan Romaji dari kata di atas lalu tekan Enter.
+              </p>
             </div>
           ) : (
-            // REVERSE: Show Romaji + Meaning
-            <div className="flex flex-col items-center">
-              <span className="text-xs font-black uppercase text-[#0c389c] tracking-widest mb-1">
-                SUSUN HURUF {currentWord.script === 'katakana' ? 'KATAKANA' : 'HIRAGANA'} UNTUK KATA:
+            // REVERSE MODE: Interactive Kana Builder Keypad!
+            <div className="w-full mt-2">
+              <KanaKeyboard
+                script={currentWord.script === 'katakana' ? 'katakana' : 'hiragana'}
+                isWordMode={true}
+                currentBuffer={kanaBuffer}
+                onSelectKana={handleKeypadSelect}
+                onDelete={handleKeypadDelete}
+                onClear={handleKeypadClear}
+                onSubmit={handleKeypadSubmit}
+              />
+            </div>
+          )}
+
+          {/* LAST ANSWER ERROR BANNER */}
+          {lastAnswer && !lastAnswer.wasCorrect && (
+            <div className="mt-4 p-3 bg-[#ffe4e6] border-2 border-[#d9261c] rounded-xl text-[#991b1b] flex items-center justify-center gap-2 max-w-md w-full animate-retro-shake">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span className="text-xs font-bold">
+                Jawaban yang benar: <strong>{lastAnswer.word.kana}</strong> ({lastAnswer.word.romaji.toUpperCase()} - {lastAnswer.word.indonesian})
               </span>
-              <div
-                className={`text-4xl sm:text-6xl font-black font-bungee tracking-wide text-[#0b1a3d] transition-transform ${
-                  feedback === 'correct'
-                    ? 'animate-retro-pop text-[#10b981]'
-                    : feedback === 'incorrect'
-                    ? 'animate-retro-shake text-[#d9261c]'
-                    : ''
-                }`}
-              >
-                {currentWord.romaji.toUpperCase()}
-              </div>
-              <div className="mt-2 text-base font-extrabold text-[#0c389c] bg-[#e0e7ff] px-4 py-1 rounded-full border border-[#0c389c]/30">
-                Arti: {currentWord.indonesian} ({currentWord.english})
-              </div>
             </div>
           )}
         </div>
-
-        {/* INPUT SECTION */}
-        {direction === 'kana_to_romaji' ? (
-          // NORMAL MODE INPUT (Typing Romaji)
-          <div className="w-full max-w-md space-y-2">
-            <div className="flex items-center gap-2">
-              <input
-                ref={inputRef}
-                type="text"
-                value={inputVal}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setInputVal(val);
-                  if (checkWordRomajiMatch(val, currentWord.romaji)) {
-                    handleSubmit(val);
-                  }
-                }}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(inputVal)}
-                placeholder="Ketik romaji (contoh: arigatou)..."
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                className="w-full text-center text-2xl font-black font-mono py-3 px-4 rounded-xl border-3 border-[#0b1a3d] bg-[#f6eedf] focus:bg-white text-[#0b1a3d] shadow-[4px_4px_0px_#0b1a3d] outline-none"
-              />
-              <button
-                onClick={() => handleSubmit(inputVal)}
-                className="retro-btn retro-btn-yellow py-3.5 px-5 text-sm shrink-0"
-              >
-                OK
-              </button>
-            </div>
-            <p className="text-[11px] font-bold text-gray-500">
-              Ketik bacaan Romaji dari kata di atas lalu tekan Enter.
-            </p>
-          </div>
-        ) : (
-          // REVERSE MODE: Interactive Kana Builder Keypad!
-          <div className="w-full mt-2">
-            <KanaKeyboard
-              script={currentWord.script === 'katakana' ? 'katakana' : 'hiragana'}
-              isWordMode={true}
-              currentBuffer={kanaBuffer}
-              onSelectKana={handleKeypadSelect}
-              onDelete={handleKeypadDelete}
-              onClear={handleKeypadClear}
-              onSubmit={handleKeypadSubmit}
-            />
-          </div>
-        )}
-
-        {/* LAST ANSWER ERROR BANNER */}
-        {lastAnswer && !lastAnswer.wasCorrect && (
-          <div className="mt-4 p-3 bg-[#ffe4e6] border-2 border-[#d9261c] rounded-xl text-[#991b1b] flex items-center justify-center gap-2 max-w-md w-full animate-retro-shake">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <span className="text-xs font-bold">
-              Jawaban yang benar: <strong>{lastAnswer.word.kana}</strong> ({lastAnswer.word.romaji.toUpperCase()} - {lastAnswer.word.indonesian})
-            </span>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 };

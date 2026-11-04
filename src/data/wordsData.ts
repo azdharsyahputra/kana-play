@@ -1,6 +1,7 @@
 import type { WordItem } from '../types';
+import { UTS_WORDS } from './utsWordsData';
 
-export const JAPANESE_WORDS: WordItem[] = [
+const BASE_WORDS: WordItem[] = [
   {
     "id": "b-001",
     "kana": "ありがとう",
@@ -9912,6 +9913,14 @@ export const JAPANESE_WORDS: WordItem[] = [
   }
 ];
 
+const utsKanaSet = new Set(UTS_WORDS.map(w => w.kana));
+
+export const JAPANESE_WORDS: WordItem[] = [
+  ...UTS_WORDS,
+  ...BASE_WORDS.filter(w => !utsKanaSet.has(w.kana)),
+];
+
+
 
 // Helper to sanitize word comparison
 export function cleanWordString(str: string): string {
@@ -9921,11 +9930,11 @@ export function cleanWordString(str: string): string {
     .replace(/ō|ou|oo/g, 'o')
     .replace(/ū|uu/g, 'u')
     .replace(/ā|aa/g, 'a')
-    .replace(/ē|ee/g, 'e')
+    .replace(/ē|ee|ei/g, 'e')
     .replace(/ī|ii/g, 'i');
 }
 
-export function checkWordRomajiMatch(userInput: string, targetRomaji: string): boolean {
+export function checkWordRomajiMatch(userInput: string, targetRomaji: string, altRomaji?: string[]): boolean {
   const u = userInput.trim().toLowerCase();
   const t = targetRomaji.trim().toLowerCase();
   if (u === t) return true;
@@ -9933,6 +9942,13 @@ export function checkWordRomajiMatch(userInput: string, targetRomaji: string): b
   const cu = cleanWordString(u);
   const ct = cleanWordString(t);
   if (cu === ct) return true;
+
+  if (altRomaji && altRomaji.length > 0) {
+    for (const alt of altRomaji) {
+      if (u === alt.trim().toLowerCase()) return true;
+      if (cu === cleanWordString(alt)) return true;
+    }
+  }
 
   // Particle variations on target using word boundaries (\b):
   // 1. Particle は: 'wa' <-> 'ha'

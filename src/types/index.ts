@@ -30,11 +30,32 @@ export interface WordItem {
   kana: string; // Hiragana or Katakana word
   kanji?: string;
   romaji: string;
+  altRomaji?: string[];
   english: string;
   indonesian: string;
-  category: 'food' | 'animals' | 'daily' | 'basics' | 'anime' | 'jlpt5' | 'nature' | 'travel' | 'sentences';
+  category:
+    | 'food'
+    | 'animals'
+    | 'daily'
+    | 'basics'
+    | 'anime'
+    | 'jlpt5'
+    | 'nature'
+    | 'travel'
+    | 'sentences'
+    | 'uts_target'
+    | 'classroom'
+    | 'house_furniture'
+    | 'electronics'
+    | 'family'
+    | 'katakana_loan'
+    | 'uts_reading'
+    | string;
+  subCategories?: string[];
   script: 'hiragana' | 'katakana' | 'mixed';
   difficulty: 1 | 2 | 3;
+  isUts?: boolean;
+  notes?: string;
 }
 
 export interface KanaMastery {
