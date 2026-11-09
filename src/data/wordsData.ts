@@ -1,5 +1,6 @@
 import type { WordItem } from '../types';
 import { UTS_WORDS } from './utsWordsData';
+import { TIME_WORDS } from './timeWordsData';
 
 const BASE_WORDS: WordItem[] = [
   {
@@ -9914,10 +9915,14 @@ const BASE_WORDS: WordItem[] = [
 ];
 
 const utsKanaSet = new Set(UTS_WORDS.map(w => w.kana));
+const timeKanaSet = new Set(TIME_WORDS.map(w => w.kana));
+
+export { TIME_WORDS };
 
 export const JAPANESE_WORDS: WordItem[] = [
+  ...TIME_WORDS,
   ...UTS_WORDS,
-  ...BASE_WORDS.filter(w => !utsKanaSet.has(w.kana)),
+  ...BASE_WORDS.filter(w => !utsKanaSet.has(w.kana) && !timeKanaSet.has(w.kana)),
 ];
 
 

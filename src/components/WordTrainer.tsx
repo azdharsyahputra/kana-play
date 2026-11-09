@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { JAPANESE_WORDS, checkWordRomajiMatch } from '../data/wordsData';
+import { JAPANESE_WORDS, TIME_WORDS, checkWordRomajiMatch } from '../data/wordsData';
 import type { DrillDirection, UserStats, WordItem } from '../types';
 import { KanaKeyboard } from './KanaKeyboard';
 import { playCorrectSound, playIncorrectSound, speakJapanese, playKeyClickSound } from '../utils/audio';
@@ -39,6 +39,15 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
     { id: 'family', label: '👨‍👩‍👧‍👦 Keluarga & Sebutan' },
     { id: 'katakana_loan', label: '🔤 Katakana Serapan (UTS)' },
     { id: 'uts_reading', label: '🎯 Target Membaca Hal 6-7' },
+  ];
+
+  const timeCategories = [
+    { id: 'time_words', label: '⏰ Semua Waktu (Jikan Full)' },
+    { id: 'time_days', label: '🗓️ Nama Hari (7 Hari + Tanya)' },
+    { id: 'time_months', label: '🌕 Nama Bulan (1-12 & Khusus)' },
+    { id: 'time_dates', label: '📌 Tanggal (1-31 & Spesial)' },
+    { id: 'time_relative', label: '⏳ Relatif (Hari Ini, Besok, Lusa...)' },
+    { id: 'time_sentences', label: '💬 Kalimat & Komunikasi Waktu' },
   ];
 
   const generalCategories = [
@@ -367,7 +376,48 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
             </div>
           </div>
 
-          {/* SECTION 2: GENERAL CATEGORIES */}
+          {/* SECTION 2: JIKAN NO KOTOBA (HARI, BULAN, TANGGAL & KOMUNIKASI) */}
+          <div className="p-2.5 sm:p-3 bg-[#eff6ff] border-2 border-[#0c389c]/30 rounded-xl">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-black uppercase text-[#0c389c] flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-[#ffd200] fill-current" /> JIKAN NO KOTOBA (HARI, BULAN, TANGGAL & KOMUNIKASI):
+              </span>
+              <span className="text-[10px] font-bold text-[#0c389c]/80 bg-white/80 px-2 py-0.5 rounded-full border border-[#0c389c]/20 hidden sm:inline">
+                {TIME_WORDS.length} Kosakata & Kalimat Waktu
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 items-center">
+              {timeCategories.map((cat) => {
+                const count = getCategoryCount(cat.id);
+                const isSelected = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      playKeyClickSound();
+                      setSelectedCategory(cat.id);
+                    }}
+                    className={`px-2.5 py-1 text-xs font-heading font-black rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#0c389c] border-[#071e54] text-white shadow-[2px_2px_0px_#0b1a3d]'
+                        : 'bg-white border-[#0c389c]/30 text-[#0c389c] hover:bg-[#dbeafe]'
+                    }`}
+                  >
+                    <span>{cat.label}</span>
+                    <span
+                      className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-[#dbeafe] text-[#1e40af]'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* SECTION 3: GENERAL CATEGORIES */}
           <div className="flex flex-wrap gap-1.5 items-center pt-1">
             <span className="text-[11px] font-black uppercase text-gray-500 mr-1 flex items-center gap-1 shrink-0">
               <Filter className="w-3.5 h-3.5" /> Kategori Umum:
@@ -436,6 +486,11 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
             {currentWord.isUts && (
               <span className="text-xs font-black uppercase bg-[#ff4757] text-white border border-[#991b1b] px-2 py-0.5 rounded flex items-center gap-1 shadow-sm">
                 <Star className="w-3 h-3 fill-current" /> TARGET UTS (P6)
+              </span>
+            )}
+            {(currentWord.category === 'time_words' || currentWord.subCategories?.includes('time_words')) && (
+              <span className="text-xs font-black uppercase bg-[#1d4ed8] text-white border border-[#1e40af] px-2 py-0.5 rounded flex items-center gap-1 shadow-sm">
+                <Sparkles className="w-3 h-3 text-[#ffd200] fill-current" /> JIKAN NO KOTOBA
               </span>
             )}
           </div>

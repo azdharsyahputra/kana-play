@@ -13,6 +13,7 @@ import { CheatSheet } from './components/CheatSheet';
 import { RetroFooter } from './components/RetroFooter';
 import { UtsExamTrainer } from './components/UtsExamTrainer';
 import { Leaderboard } from './components/Leaderboard';
+import { JikanTrainer } from './components/JikanTrainer';
 
 export function App() {
   const [currentTab, setCurrentTab] = useState<AppTab>('home');
@@ -108,6 +109,13 @@ export function App() {
                 onUpdateStats={handleUpdateStats}
                 direction={direction}
                 onSelectDirection={setDirection}
+              />
+            )}
+
+            {currentTab === 'jikan-drill' && (
+              <JikanTrainer
+                stats={stats}
+                onUpdateStats={handleUpdateStats}
               />
             )}
 

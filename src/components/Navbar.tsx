@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppTab, UserStats } from '../types';
 import { Starburst } from './Starburst';
-import { Volume2, VolumeX, RotateCcw, Zap, Flame, Trophy, Award, BookOpen, Layers, PenTool, GraduationCap } from 'lucide-react';
+import { Volume2, VolumeX, RotateCcw, Zap, Flame, Trophy, Award, BookOpen, Layers, PenTool, GraduationCap, Clock } from 'lucide-react';
 import { getSoundEnabled, setSoundEnabled, playKeyClickSound } from '../utils/audio';
 
 interface NavbarProps {
@@ -160,6 +160,27 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span><span className="sm:hidden">WORD</span><span className="hidden sm:inline">WORD DRILL</span></span>
+            </button>
+
+            <button
+              onClick={() => {
+                playKeyClickSound();
+                onSelectTab('jikan-drill');
+              }}
+              className={`retro-btn px-1 sm:px-3 py-1.5 sm:py-2 text-[9px] sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 leading-tight ${
+                currentTab === 'jikan-drill'
+                  ? 'retro-btn-yellow'
+                  : 'bg-transparent text-white border-transparent shadow-none hover:bg-white/10'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="flex items-center gap-1">
+                <span className="sm:hidden">WAKTU</span>
+                <span className="hidden sm:inline">HARI & WAKTU</span>
+                <span className="hidden 2xl:inline text-[9px] bg-[#d9261c] text-white px-1 py-0.2 rounded font-black">
+                  BARU
+                </span>
+              </span>
             </button>
 
             <button

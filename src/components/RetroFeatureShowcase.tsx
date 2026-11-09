@@ -1,7 +1,7 @@
 import React from 'react';
 import type { AppTab, DrillDirection } from '../types';
 import { Starburst } from './Starburst';
-import { Zap, Shuffle, BookOpen, PenTool, Trophy } from 'lucide-react';
+import { Zap, Shuffle, BookOpen, PenTool, Trophy, Clock } from 'lucide-react';
 import { playKeyClickSound } from '../utils/audio';
 
 interface RetroFeatureShowcaseProps {
@@ -64,10 +64,21 @@ export const RetroFeatureShowcase: React.FC<RetroFeatureShowcaseProps> = ({
                   playKeyClickSound();
                   onSelectTab('word-drill');
                 }}
-                className="retro-btn retro-btn-white px-4 py-2.5 text-xs sm:text-sm flex items-center gap-2"
+                className="retro-btn retro-btn-white px-4 py-2.5 text-xs sm:text-sm flex items-center gap-2 cursor-pointer"
               >
                 <BookOpen className="w-4 h-4 text-[#0c389c]" />
                 <span>LATIHAN KATA (VOCAB)</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  playKeyClickSound();
+                  onSelectTab('jikan-drill');
+                }}
+                className="retro-btn retro-btn-yellow px-4 py-2.5 text-xs sm:text-sm flex items-center gap-2 border-[#0b1a3d] cursor-pointer"
+              >
+                <Clock className="w-4 h-4 text-[#d9261c]" />
+                <span>DRILL HARI & WAKTU (JIKAN) ⏰</span>
               </button>
 
               <button

@@ -2,7 +2,7 @@ import React from 'react';
 import { KANA_ROWS } from '../data/kanaData';
 import type { AppTab, DrillDirection, KanaScript, UserStats, UtsCategory } from '../types';
 import { playKeyClickSound } from '../utils/audio';
-import { ChevronRight, Sparkles, GraduationCap, CheckCircle, Trophy, Zap, Flame, Award, ArrowRight } from 'lucide-react';
+import { ChevronRight, Sparkles, GraduationCap, CheckCircle, Trophy, Zap, Flame, Award, ArrowRight, Clock } from 'lucide-react';
 import { calculateUserPoints, loadPlayerProfile, getUserTitle } from '../utils/leaderboard';
 
 interface RetroSidebarProps {
@@ -167,6 +167,66 @@ export const RetroSidebar: React.FC<RetroSidebarProps> = ({
             <p className="text-[11px] font-heading font-medium text-white/90 mt-1 leading-snug">
               Bila jawaban salah, baca baik-baik bedah pembahasan yang muncul sebelum menekan tombol lanjut!
             </p>
+          </div>
+        </div>
+      ) : currentTab === 'jikan-drill' ? (
+        <div className="space-y-4">
+          <div className="retro-card p-3.5 bg-white">
+            <div className="bg-[#0c389c] text-white px-3 py-1.5 rounded-lg font-bungee text-xs uppercase tracking-wider text-center mb-3 shadow-[2px_2px_0px_#0b1a3d] flex items-center justify-center gap-1.5">
+              <Clock className="w-4 h-4 text-[#ffd200]" />
+              <span>JIKAN DRILL HUB</span>
+            </div>
+
+            <div className="space-y-2 text-xs font-bold text-[#0b1a3d]">
+              <div className="p-2 bg-[#f6eedf] rounded-lg border border-[#0b1a3d]/20">
+                <div className="font-bungee text-xs text-[#0c389c] mb-1">
+                  💡 CARA CEPAT HAFAL
+                </div>
+                <p className="text-[11px] text-gray-700 leading-snug">
+                  Gunakan <strong>Mode Pilihan Ganda</strong> untuk melatih refleks visual, lalu beralih ke <strong>Ketik Romaji</strong> untuk mengunci daya ingat aktif!
+                </p>
+              </div>
+
+              <div className="p-2 bg-[#ecfdf5] rounded-lg border border-[#047857]/30 text-[#047857]">
+                <div className="font-bungee text-[11px] mb-0.5">
+                  ☀️ RUMUS 7 HARI
+                </div>
+                <div className="text-[10px] space-y-0.5">
+                  <div>日 (Sun) = Minggu (にちようび)</div>
+                  <div>月 (Moon) = Senin (げつようび)</div>
+                  <div>火 (Fire) = Selasa (かようび)</div>
+                  <div>水 (Water) = Rabu (すいようび)</div>
+                  <div>木 (Tree) = Kamis (もくようび)</div>
+                  <div>金 (Gold) = Jumat (きんようび)</div>
+                  <div>土 (Earth) = Sabtu (どようび)</div>
+                </div>
+              </div>
+
+              <div className="p-2 bg-[#fff7ed] rounded-lg border border-[#ea580c]/30 text-[#9a3412]">
+                <div className="font-bungee text-[11px] mb-0.5">
+                  ⭐ 3 TANGGAL PALING DIUJI
+                </div>
+                <div className="text-[10px] space-y-0.5 font-mono">
+                  <div>1日 = ついたち (tsuitachi)</div>
+                  <div>14日 = じゅうよっか (juuyokka)</div>
+                  <div>20日 = はつか (hatsuka)</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick buttons */}
+            <div className="mt-3 pt-2.5 border-t border-gray-200 space-y-1.5">
+              <button
+                onClick={() => {
+                  playKeyClickSound();
+                  onSelectTab('word-drill');
+                }}
+                className="retro-btn retro-btn-yellow w-full py-1.5 text-xs flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <span>LIHAT DI WORD DRILL</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       ) : (

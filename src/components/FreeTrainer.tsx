@@ -2,15 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { KANA_ROWS, ALL_KANA_ITEMS, checkRomajiMatch } from '../data/kanaData';
 import { DrillDirection, KanaItem, KanaScript, UserStats } from '../types';
 import { KanaKeyboard } from './KanaKeyboard';
-import { playCorrectSound, playIncorrectSound, speakJapanese } from '../utils/audio';
+import { playCorrectSound, playIncorrectSound, speakJapanese, playKeyClickSound } from '../utils/audio';
 import { recordKanaAnswer } from '../utils/storage';
-import { Volume2, CheckSquare, Square, Zap, Sparkles, AlertCircle } from 'lucide-react';
+import { JikanTrainer } from './JikanTrainer';
+import { Volume2, CheckSquare, Square, Zap, Sparkles, AlertCircle, Clock, Layers } from 'lucide-react';
 
 interface FreeTrainerProps {
   script: KanaScript;
   direction: DrillDirection;
   stats: UserStats;
   onUpdateStats: (newStats: UserStats) => void;
+  defaultMode?: 'kana' | 'jikan';
 }
 
 export const FreeTrainer: React.FC<FreeTrainerProps> = ({
@@ -18,7 +20,10 @@ export const FreeTrainer: React.FC<FreeTrainerProps> = ({
   direction,
   stats,
   onUpdateStats,
+  defaultMode = 'kana',
 }) => {
+  const [drillMode, setDrillMode] = useState<'kana' | 'jikan'>(defaultMode);
+
   // Selected rows for custom practice (defaults to first 5 main rows)
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([
     'row-a', 'row-k', 'row-s', 'row-t', 'row-n'
@@ -154,8 +159,53 @@ export const FreeTrainer: React.FC<FreeTrainerProps> = ({
 
   return (
     <div className="w-full flex flex-col gap-4">
-      {/* 1. ROW FILTER CONTROLS */}
-      <div className="retro-card p-4 bg-white order-last sm:order-none">
+      {/* FREE DRILL CATEGORY SWITCHER: KANA VS JIKAN */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 bg-white rounded-xl border-3 border-[#0b1a3d] shadow-[3px_3px_0px_#0b1a3d]">
+        <div className="flex items-center gap-2 pl-2">
+          <Layers className="w-5 h-5 text-[#0c389c]" />
+          <span className="font-bungee text-xs sm:text-sm text-[#0b1a3d]">
+            PILIH VERSI FREE DRILL:
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 bg-[#f6eedf] p-1 rounded-lg border-2 border-[#0b1a3d] w-full sm:w-auto justify-between sm:justify-start">
+          <button
+            onClick={() => {
+              playKeyClickSound();
+              setDrillMode('kana');
+            }}
+            className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-heading font-black rounded-md transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              drillMode === 'kana'
+                ? 'bg-[#0c389c] text-white shadow-[1px_1px_0px_#0b1a3d]'
+                : 'text-[#0b1a3d] hover:bg-white'
+            }`}
+          >
+            <span>🔤 Huruf Kana</span>
+          </button>
+          <button
+            onClick={() => {
+              playKeyClickSound();
+              setDrillMode('jikan');
+            }}
+            className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-heading font-black rounded-md transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              drillMode === 'jikan'
+                ? 'bg-[#d9261c] text-white shadow-[1px_1px_0px_#0b1a3d]'
+                : 'text-[#0b1a3d] hover:bg-white'
+            }`}
+          >
+            <span>⏰ Hari, Bulan, Tanggal & Waktu</span>
+            <span className="text-[9px] bg-[#ffd200] text-[#0b1a3d] px-1 py-0.2 rounded font-black hidden sm:inline">
+              BARU
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {drillMode === 'jikan' ? (
+        <JikanTrainer stats={stats} onUpdateStats={onUpdateStats} />
+      ) : (
+        <>
+          {/* 1. ROW FILTER CONTROLS */}
+          <div className="retro-card p-4 bg-white order-last sm:order-none">
         <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#0b1a3d]/20 mb-3">
           <div className="flex items-center gap-2">
             <span className="font-bungee text-sm sm:text-base text-[#0b1a3d]">
@@ -310,6 +360,8 @@ export const FreeTrainer: React.FC<FreeTrainerProps> = ({
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 };
