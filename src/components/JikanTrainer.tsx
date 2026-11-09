@@ -66,6 +66,7 @@ export const JikanTrainer: React.FC<JikanTrainerProps> = ({
   // Question State
   const [currentWord, setCurrentWord] = useState<WordItem | null>(null);
   const [choices, setChoices] = useState<string[]>([]);
+  const [wrongChoices, setWrongChoices] = useState<string[]>([]);
   const [inputVal, setInputVal] = useState('');
   const [kanaBuffer, setKanaBuffer] = useState('');
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
@@ -74,6 +75,7 @@ export const JikanTrainer: React.FC<JikanTrainerProps> = ({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const lastWordIdRef = useRef<string | null>(null);
+  const hasRecordedErrorRef = useRef<boolean>(false);
 
   // Subcategory list definitions
   const subCategoryOptions: SubCategoryOption[] = useMemo(() => [
@@ -197,6 +199,8 @@ export const JikanTrainer: React.FC<JikanTrainerProps> = ({
     setKanaBuffer('');
     setFeedback(null);
     setSelectedChoice(null);
+    setWrongChoices([]);
+    hasRecordedErrorRef.current = false;
 
     if (randomWord) {
       setChoices(generateChoices(randomWord, basePool));
@@ -211,13 +215,69 @@ export const JikanTrainer: React.FC<JikanTrainerProps> = ({
     pickNextWord();
   }, [selectedSubCats]);
 
-  // Handle Answers
-  const handleAnswerResult = (isCorrect: boolean, chosenText?: string) => {
-    if (!currentWord) return;
+  // Multiple Choice click handler
+  const handleChoiceClick = (choice: string) => {
+    if (!currentWord || feedback === 'correct') return;
+    if (wrongChoices.includes(choice)) return; // already tried and wrong
 
-    if (chosenText) {
-      setSelectedChoice(chosenText);
+    const isCorrect = choice === currentWord.indonesian;
+
+    if (isCorrect) {
+      setSelectedChoice(choice);
+      setFeedback('correct');
+      playCorrectSound(stats.currentStreak + 1);
+      speakJapanese(currentWord.kana);
+
+      const nextWordsMastered = Array.from(new Set([...stats.wordsMastered, currentWord.id]));
+      const nextStreak = hasRecordedErrorRef.current ? 0 : stats.currentStreak + 1;
+
+      const nextStats: UserStats = {
+        ...stats,
+        totalAnswered: hasRecordedErrorRef.current ? stats.totalAnswered : stats.totalAnswered + 1,
+        totalCorrect: hasRecordedErrorRef.current ? stats.totalCorrect : stats.totalCorrect + 1,
+        currentStreak: nextStreak,
+        bestStreak: Math.max(stats.bestStreak, nextStreak),
+        wordsMastered: nextWordsMastered,
+      };
+
+      onUpdateStats(nextStats);
+      saveUserStats(nextStats);
+      setLastAnswer({ wasCorrect: true, word: currentWord });
+
+      setTimeout(() => {
+        pickNextWord();
+      }, 550);
+    } else {
+      // Wrong choice clicked: mark red, keep other choices active so user can try again!
+      setWrongChoices(prev => [...prev, choice]);
+      setSelectedChoice(choice);
+      setFeedback('incorrect');
+      playIncorrectSound();
+
+      if (!hasRecordedErrorRef.current) {
+        hasRecordedErrorRef.current = true;
+        const nextStats: UserStats = {
+          ...stats,
+          totalAnswered: stats.totalAnswered + 1,
+          currentStreak: 0,
+        };
+        onUpdateStats(nextStats);
+        saveUserStats(nextStats);
+      }
+
+      setLastAnswer({ wasCorrect: false, word: currentWord });
+
+      // Automatically reset feedback shake after 400ms so remaining choices are immediately clickable!
+      setTimeout(() => {
+        setFeedback(null);
+      }, 400);
     }
+  };
+
+  // Typing submit handler
+  const handleTypingSubmit = (val: string) => {
+    if (!currentWord || feedback === 'correct') return;
+    const isCorrect = checkWordRomajiMatch(val, currentWord.romaji, currentWord.altRomaji);
 
     if (isCorrect) {
       setFeedback('correct');
@@ -255,26 +315,17 @@ export const JikanTrainer: React.FC<JikanTrainerProps> = ({
 
       setLastAnswer({ wasCorrect: false, word: currentWord });
       setInputVal('');
-      setKanaBuffer('');
+
+      setTimeout(() => {
+        setFeedback(null);
+        inputRef.current?.focus();
+      }, 450);
     }
-  };
-
-  // Multiple Choice click handler
-  const handleChoiceClick = (choice: string) => {
-    if (!currentWord || feedback !== null) return;
-    const isCorrect = choice === currentWord.indonesian;
-    handleAnswerResult(isCorrect, choice);
-  };
-
-  // Typing submit handler
-  const handleTypingSubmit = (val: string) => {
-    if (!currentWord || feedback !== null) return;
-    const isCorrect = checkWordRomajiMatch(val, currentWord.romaji, currentWord.altRomaji);
-    handleAnswerResult(isCorrect);
   };
 
   // Reverse Keypad handlers
   const handleKeypadSelect = (char: string) => {
+    if (feedback === 'correct') return;
     const newBuf = kanaBuffer + char;
     setKanaBuffer(newBuf);
 
@@ -282,7 +333,47 @@ export const JikanTrainer: React.FC<JikanTrainerProps> = ({
     if (currentWord && newBuf.length === cleanTarget.length) {
       const cleanSubmit = newBuf.replace(/[\s\-_ー.,?!~〜。、！？\(\)\[\]]/g, '');
       const isCorrect = cleanSubmit === cleanTarget;
-      handleAnswerResult(isCorrect);
+
+      if (isCorrect) {
+        setFeedback('correct');
+        playCorrectSound(stats.currentStreak + 1);
+        speakJapanese(currentWord.kana);
+
+        const nextWordsMastered = Array.from(new Set([...stats.wordsMastered, currentWord.id]));
+        const nextStats: UserStats = {
+          ...stats,
+          totalAnswered: stats.totalAnswered + 1,
+          totalCorrect: stats.totalCorrect + 1,
+          currentStreak: stats.currentStreak + 1,
+          bestStreak: Math.max(stats.bestStreak, stats.currentStreak + 1),
+          wordsMastered: nextWordsMastered,
+        };
+
+        onUpdateStats(nextStats);
+        saveUserStats(nextStats);
+        setLastAnswer({ wasCorrect: true, word: currentWord });
+
+        setTimeout(() => {
+          pickNextWord();
+        }, 550);
+      } else {
+        setFeedback('incorrect');
+        playIncorrectSound();
+
+        const nextStats: UserStats = {
+          ...stats,
+          totalAnswered: stats.totalAnswered + 1,
+          currentStreak: 0,
+        };
+        onUpdateStats(nextStats);
+        saveUserStats(nextStats);
+
+        setLastAnswer({ wasCorrect: false, word: currentWord });
+        setTimeout(() => {
+          setFeedback(null);
+          setKanaBuffer('');
+        }, 500);
+      }
     }
   };
 
@@ -295,11 +386,50 @@ export const JikanTrainer: React.FC<JikanTrainerProps> = ({
   };
 
   const handleKeypadSubmit = () => {
-    if (!currentWord) return;
+    if (!currentWord || feedback === 'correct') return;
     const cleanTarget = currentWord.kana.replace(/[\s\-_ー.,?!~〜。、！？\(\)\[\]]/g, '');
     const cleanSubmit = kanaBuffer.replace(/[\s\-_ー.,?!~〜。、！？\(\)\[\]]/g, '');
     const isCorrect = cleanSubmit === cleanTarget;
-    handleAnswerResult(isCorrect);
+
+    if (isCorrect) {
+      setFeedback('correct');
+      playCorrectSound(stats.currentStreak + 1);
+      speakJapanese(currentWord.kana);
+
+      const nextWordsMastered = Array.from(new Set([...stats.wordsMastered, currentWord.id]));
+      const nextStats: UserStats = {
+        ...stats,
+        totalAnswered: stats.totalAnswered + 1,
+        totalCorrect: stats.totalCorrect + 1,
+        currentStreak: stats.currentStreak + 1,
+        bestStreak: Math.max(stats.bestStreak, stats.currentStreak + 1),
+        wordsMastered: nextWordsMastered,
+      };
+
+      onUpdateStats(nextStats);
+      saveUserStats(nextStats);
+      setLastAnswer({ wasCorrect: true, word: currentWord });
+
+      setTimeout(() => {
+        pickNextWord();
+      }, 550);
+    } else {
+      setFeedback('incorrect');
+      playIncorrectSound();
+
+      const nextStats: UserStats = {
+        ...stats,
+        totalAnswered: stats.totalAnswered + 1,
+        currentStreak: 0,
+      };
+      onUpdateStats(nextStats);
+      saveUserStats(nextStats);
+
+      setLastAnswer({ wasCorrect: false, word: currentWord });
+      setTimeout(() => {
+        setFeedback(null);
+      }, 450);
+    }
   };
 
   // Physical keyboard shortcuts: 1, 2, 3, 4 for choices, Enter for typing
@@ -659,33 +789,38 @@ export const JikanTrainer: React.FC<JikanTrainerProps> = ({
             <div className="w-full max-w-xl space-y-2.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {choices.map((choice, idx) => {
-                  let btnColor = 'bg-white border-[#0b1a3d]/25 text-[#0b1a3d] hover:bg-[#ffd200] hover:border-[#0b1a3d]';
-                  if (selectedChoice !== null) {
-                    if (choice === currentWord.indonesian) {
-                      btnColor = 'bg-[#10b981] border-[#047857] text-white shadow-[2px_2px_0px_#047857] font-black';
-                    } else if (choice === selectedChoice) {
-                      btnColor = 'bg-[#d9261c] border-[#73130d] text-white shadow-[2px_2px_0px_#73130d] font-black';
-                    }
+                  const isWrong = wrongChoices.includes(choice);
+                  const isCorrect = feedback === 'correct' && (choice === currentWord.indonesian || selectedChoice === choice);
+
+                  let btnColor = 'bg-white border-[#0b1a3d]/25 text-[#0b1a3d] hover:bg-[#ffd200] hover:border-[#0b1a3d] shadow-[2px_2px_0px_#0b1a3d]';
+                  if (isCorrect) {
+                    btnColor = 'bg-[#10b981] border-[#047857] text-white shadow-[2px_2px_0px_#047857] font-black scale-[1.02]';
+                  } else if (isWrong) {
+                    btnColor = 'bg-[#fee2e2] border-[#dc2626] text-[#991b1b] shadow-none opacity-85';
                   }
 
                   return (
                     <button
                       key={idx}
-                      disabled={feedback !== null}
+                      disabled={feedback === 'correct' || isWrong}
                       onClick={() => handleChoiceClick(choice)}
-                      className={`p-3 sm:p-3.5 rounded-xl border-3 text-left font-bold transition-all shadow-[2px_2px_0px_#0b1a3d] flex items-center justify-between cursor-pointer active:translate-x-0.5 active:translate-y-0.5 ${btnColor}`}
+                      className={`p-3 sm:p-3.5 rounded-xl border-3 text-left font-bold transition-all flex items-center justify-between cursor-pointer active:translate-x-0.5 active:translate-y-0.5 ${btnColor}`}
                     >
                       <div className="flex items-center gap-2 truncate">
-                        <span className="w-6 h-6 rounded-lg bg-[#0b1a3d] text-white font-bungee text-xs flex items-center justify-center shrink-0">
+                        <span className={`w-6 h-6 rounded-lg font-bungee text-xs flex items-center justify-center shrink-0 ${
+                          isWrong ? 'bg-[#dc2626] text-white' : isCorrect ? 'bg-[#047857] text-white' : 'bg-[#0b1a3d] text-white'
+                        }`}>
                           {idx + 1}
                         </span>
-                        <span className="text-xs sm:text-sm truncate">{choice}</span>
+                        <span className={`text-xs sm:text-sm truncate ${isWrong ? 'line-through text-red-700' : ''}`}>
+                          {choice}
+                        </span>
                       </div>
-                      {selectedChoice !== null && choice === currentWord.indonesian && (
-                        <CheckCircle2 className="w-4 h-4 text-white shrink-0 ml-1" />
+                      {isCorrect && (
+                        <CheckCircle2 className="w-4 h-4 text-white shrink-0 ml-1 animate-pulse" />
                       )}
-                      {selectedChoice === choice && choice !== currentWord.indonesian && (
-                        <XCircle className="w-4 h-4 text-white shrink-0 ml-1" />
+                      {isWrong && (
+                        <XCircle className="w-4 h-4 text-[#dc2626] shrink-0 ml-1" />
                       )}
                     </button>
                   );
@@ -744,13 +879,24 @@ export const JikanTrainer: React.FC<JikanTrainerProps> = ({
             </div>
           )}
 
-          {/* LAST ANSWER ERROR BANNER */}
+          {/* LAST ANSWER ERROR BANNER WITH SKIP & RETRY */}
           {lastAnswer && !lastAnswer.wasCorrect && (
-            <div className="mt-4 p-3 bg-[#ffe4e6] border-2 border-[#d9261c] rounded-xl text-[#991b1b] flex items-center justify-center gap-2 max-w-md w-full animate-retro-shake">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <span className="text-xs font-bold">
-                Jawaban benar: <strong>{lastAnswer.word.kana}</strong> ({lastAnswer.word.romaji.toUpperCase()} - {lastAnswer.word.indonesian})
-              </span>
+            <div className="mt-4 p-3 bg-[#ffe4e6] border-2 border-[#d9261c] rounded-xl text-[#991b1b] flex flex-col sm:flex-row items-center justify-between gap-2 max-w-md w-full animate-retro-shake shadow-sm">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 shrink-0 text-[#d9261c]" />
+                <span className="text-xs font-bold text-left">
+                  Jawaban belum tepat! Coba klik opsi lain atau jawaban: <strong>{lastAnswer.word.indonesian}</strong>
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  playKeyClickSound();
+                  pickNextWord();
+                }}
+                className="retro-btn retro-btn-yellow py-1 px-2.5 text-[11px] shrink-0 font-bungee whitespace-nowrap cursor-pointer"
+              >
+                Lewati ❯
+              </button>
             </div>
           )}
         </div>

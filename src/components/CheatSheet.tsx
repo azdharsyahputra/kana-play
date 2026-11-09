@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { KANA_ROWS } from '../data/kanaData';
+import { JIKAN_MNEMONICS } from '../data/timeWordsData';
 import { speakJapanese } from '../utils/audio';
-import { Volume2, BookOpen } from 'lucide-react';
+import { Volume2, BookOpen, Clock, Calendar, Sparkles } from 'lucide-react';
 
 export const CheatSheet: React.FC = () => {
   const [selectedScript, setSelectedScript] = useState<'hiragana' | 'katakana'>('hiragana');
