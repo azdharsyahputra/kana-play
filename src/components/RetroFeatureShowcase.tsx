@@ -1,7 +1,7 @@
 import React from 'react';
 import type { AppTab, DrillDirection } from '../types';
 import { Starburst } from './Starburst';
-import { Zap, Shuffle, BookOpen, PenTool } from 'lucide-react';
+import { Zap, Shuffle, BookOpen, PenTool, Trophy } from 'lucide-react';
 import { playKeyClickSound } from '../utils/audio';
 
 interface RetroFeatureShowcaseProps {
@@ -79,6 +79,17 @@ export const RetroFeatureShowcase: React.FC<RetroFeatureShowcaseProps> = ({
               >
                 <PenTool className="w-4 h-4" />
                 <span>LATIHAN MENULIS (WRITING) ✍️</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  playKeyClickSound();
+                  onSelectTab('leaderboard');
+                }}
+                className="retro-btn retro-btn-yellow px-4 py-2.5 text-xs sm:text-sm flex items-center gap-2 border-[#0b1a3d]"
+              >
+                <Trophy className="w-4 h-4 text-[#d9261c] fill-current" />
+                <span>LEADERBOARD SKOR 🏆</span>
               </button>
             </div>
           </div>
@@ -187,6 +198,29 @@ export const RetroFeatureShowcase: React.FC<RetroFeatureShowcaseProps> = ({
           </h4>
           <p className="text-[11px] font-bold text-gray-600 mt-0.5">
             Kanvas interaktif dengan grid kotak Jepang, mode bayangan, dan cek kemiripan otomatis.
+          </p>
+        </div>
+
+        {/* Card 5 */}
+        <div
+          onClick={() => {
+            playKeyClickSound();
+            onSelectTab('leaderboard');
+          }}
+          className="retro-card p-3.5 bg-white cursor-pointer hover:border-[#d9261c] transition-all group"
+        >
+          <div className="bg-[#ffd200] text-[#0b1a3d] text-xs font-bungee px-2.5 py-1 rounded-md mb-2 flex items-center justify-between border border-[#0b1a3d]">
+            <span>05 • LEADERBOARD</span>
+            <span className="text-[#d9261c]">🏆 TOP RANK</span>
+          </div>
+          <div className="h-20 bg-[#fef9c3] rounded-xl border-2 border-[#0b1a3d] flex items-center justify-center text-3xl font-bungee text-[#b45309] group-hover:scale-105 transition-transform">
+            👑 #1 TOP
+          </div>
+          <h4 className="font-bungee text-sm text-[#0b1a3d] mt-2 uppercase">
+            Papan Skor & Rival
+          </h4>
+          <p className="text-[11px] font-bold text-gray-600 mt-0.5">
+            Kumpulkan poin latihan, jaga kombo streak, dan bersaing memperebutkan tahta puncak!
           </p>
         </div>
       </div>

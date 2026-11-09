@@ -12,6 +12,7 @@ import { KanaMatrix } from './components/KanaMatrix';
 import { CheatSheet } from './components/CheatSheet';
 import { RetroFooter } from './components/RetroFooter';
 import { UtsExamTrainer } from './components/UtsExamTrainer';
+import { Leaderboard } from './components/Leaderboard';
 
 export function App() {
   const [currentTab, setCurrentTab] = useState<AppTab>('home');
@@ -134,6 +135,10 @@ export function App() {
                 onSelectCategory={setUtsCategory}
                 onBackToHome={() => selectTab('home')}
               />
+            )}
+
+            {currentTab === 'leaderboard' && (
+              <Leaderboard stats={stats} />
             )}
           </div>
         </div>

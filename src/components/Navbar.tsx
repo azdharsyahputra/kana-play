@@ -116,7 +116,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* MODE TABS (Nova Play Pill Buttons) */}
-          <div className="w-full md:w-auto grid grid-cols-3 sm:flex sm:flex-wrap items-center justify-center gap-1 sm:gap-2 bg-[#071e54]/80 p-1 sm:p-1.5 rounded-xl border-2 border-white/20 shadow-inner">
+          <div className="w-full md:w-auto grid grid-cols-4 sm:flex sm:flex-wrap items-center justify-center gap-1 sm:gap-2 bg-[#071e54]/80 p-1 sm:p-1.5 rounded-xl border-2 border-white/20 shadow-inner">
             <button
               onClick={() => {
                 playKeyClickSound();
@@ -209,6 +209,27 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="hidden sm:inline">SOAL UTS</span>
                 <span className="hidden xl:inline text-[9px] bg-[#ffd200] text-[#0b1a3d] px-1 py-0.2 rounded font-black">
                   NEW
+                </span>
+              </span>
+            </button>
+
+            <button
+              onClick={() => {
+                playKeyClickSound();
+                onSelectTab('leaderboard');
+              }}
+              className={`retro-btn px-1 sm:px-3 py-1.5 sm:py-2 text-[9px] sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 leading-tight ${
+                currentTab === 'leaderboard'
+                  ? 'retro-btn-yellow text-[#0b1a3d] border-white shadow-[2px_2px_0px_#ffffff]'
+                  : 'bg-transparent text-white border-transparent shadow-none hover:bg-white/10'
+              }`}
+            >
+              <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#ffd200] fill-current" />
+              <span className="flex items-center gap-1">
+                <span className="sm:hidden">TOP</span>
+                <span className="hidden sm:inline">LEADERBOARD</span>
+                <span className="hidden xl:inline text-[9px] bg-[#d9261c] text-white px-1 py-0.2 rounded font-black">
+                  TOP
                 </span>
               </span>
             </button>

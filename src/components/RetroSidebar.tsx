@@ -2,7 +2,8 @@ import React from 'react';
 import { KANA_ROWS } from '../data/kanaData';
 import type { AppTab, DrillDirection, KanaScript, UserStats, UtsCategory } from '../types';
 import { playKeyClickSound } from '../utils/audio';
-import { ChevronRight, Sparkles, GraduationCap, CheckCircle } from 'lucide-react';
+import { ChevronRight, Sparkles, GraduationCap, CheckCircle, Trophy, Zap, Flame, Award, ArrowRight } from 'lucide-react';
+import { calculateUserPoints, loadPlayerProfile, getUserTitle } from '../utils/leaderboard';
 
 interface RetroSidebarProps {
   currentTab: AppTab;
@@ -33,8 +34,74 @@ export const RetroSidebar: React.FC<RetroSidebarProps> = ({
 }) => {
   return (
     <aside className="w-full lg:w-72 space-y-4 select-none shrink-0">
-      {/* KHUSUS TAB UTS EXAM: KONTROL KISI-KISI & KATEGORI */}
-      {currentTab === 'uts-exam' ? (
+      {/* KHUSUS TAB LEADERBOARD: KONTROL LEADERBOARD & ATURAN POIN */}
+      {currentTab === 'leaderboard' ? (
+        <div className="space-y-4">
+          <div className="retro-card p-3.5 bg-white">
+            <div className="bg-[#ffd200] border-2 border-[#0b1a3d] text-[#0b1a3d] px-3 py-1.5 rounded-lg font-bungee text-xs uppercase tracking-wider text-center mb-3 shadow-[2px_2px_0px_#0b1a3d] flex items-center justify-center gap-1.5">
+              <Trophy className="w-4 h-4 text-[#d9261c] fill-current" />
+              <span>LEADERBOARD INFO</span>
+            </div>
+
+            {/* Profile Mini Card */}
+            <div className="p-3 bg-[#f6eedf] rounded-xl border-2 border-[#0b1a3d]/20 mb-3 text-center">
+              <div className="text-3xl mb-1">{loadPlayerProfile().avatar}</div>
+              <div className="font-bungee text-sm text-[#0b1a3d] truncate">
+                {loadPlayerProfile().name}
+              </div>
+              <div className="text-[11px] font-black text-[#0c389c]">
+                {getUserTitle(calculateUserPoints(stats), stats.totalAnswered > 0 ? Math.round((stats.totalCorrect / stats.totalAnswered) * 100) : 100)}
+              </div>
+              <div className="mt-2 py-1 px-2 bg-white rounded-lg border border-[#0b1a3d]/20 flex justify-between items-center text-xs font-bold">
+                <span>Total Poin Kamu:</span>
+                <span className="font-bungee text-[#d9261c]">{calculateUserPoints(stats).toLocaleString()} PTS</span>
+              </div>
+            </div>
+
+            {/* Scoring System Rules */}
+            <div className="text-xs font-black uppercase text-[#0b1a3d] pb-1 border-b-2 border-[#0b1a3d]/20 mb-2">
+              SISTEM PERHITUNGAN POIN
+            </div>
+            <div className="space-y-1.5 text-xs font-bold text-[#0b1a3d]">
+              <div className="flex justify-between items-center p-1.5 bg-[#f6eedf] rounded-lg border border-[#0b1a3d]/10">
+                <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-[#047857]" /> Tiap Jawaban Benar</span>
+                <span className="font-bungee text-[11px] text-[#047857]">+15 PTS</span>
+              </div>
+              <div className="flex justify-between items-center p-1.5 bg-[#f6eedf] rounded-lg border border-[#0b1a3d]/10">
+                <span className="flex items-center gap-1"><Flame className="w-3 h-3 text-[#d9261c]" /> Combo Best Streak</span>
+                <span className="font-bungee text-[11px] text-[#d9261c]">+25 PTS/x</span>
+              </div>
+              <div className="flex justify-between items-center p-1.5 bg-[#f6eedf] rounded-lg border border-[#0b1a3d]/10">
+                <span className="flex items-center gap-1"><Award className="w-3 h-3 text-[#0c389c]" /> Buka Tier Level</span>
+                <span className="font-bungee text-[11px] text-[#0c389c]">+80 PTS</span>
+              </div>
+              <div className="flex justify-between items-center p-1.5 bg-[#f6eedf] rounded-lg border border-[#0b1a3d]/10">
+                <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-[#b45309]" /> Master 1 Huruf Kana</span>
+                <span className="font-bungee text-[11px] text-[#b45309]">+40 PTS</span>
+              </div>
+            </div>
+
+            {/* Return to drills button */}
+            <button
+              onClick={() => {
+                playKeyClickSound();
+                onSelectTab('brute-force');
+              }}
+              className="retro-btn retro-btn-yellow w-full mt-3 py-2 text-xs flex items-center justify-center gap-1.5"
+            >
+              <span>LANJUT MAIN DRILL</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="retro-card-blue p-3.5 text-center">
+            <h4 className="font-bungee text-xs text-[#ffd200] uppercase">CARA CEPAT TOP 1</h4>
+            <p className="text-[11px] font-heading font-medium text-white/90 mt-1 leading-snug">
+              Pertahankan streak panjang tanpa salah! Combo streak memberikan multiplier bonus poin tercepat untuk mendongkrak peringkatmu.
+            </p>
+          </div>
+        </div>
+      ) : currentTab === 'uts-exam' ? (
         <div className="space-y-4">
           <div className="retro-card p-3.5 bg-white">
             <div className="bg-[#d9261c] text-white px-3 py-1.5 rounded-lg font-bungee text-xs uppercase tracking-wider text-center mb-3 shadow-[2px_2px_0px_#0b1a3d] flex items-center justify-center gap-1.5">
@@ -176,6 +243,25 @@ export const RetroSidebar: React.FC<RetroSidebarProps> = ({
               <span className="text-[10px] font-bold mt-0.5">REVERSE (KEYPAD)</span>
             </button>
           </div>
+        </div>
+
+        {/* LEADERBOARD BUTTON IN MODE CONTROLLER */}
+        <div className="mt-3 pt-2.5 border-t-2 border-[#0b1a3d]/15">
+          <button
+            onClick={() => {
+              playKeyClickSound();
+              onSelectTab('leaderboard');
+            }}
+            className="w-full py-2 px-2.5 bg-[#ffd200] hover:bg-[#ffe043] text-[#0b1a3d] border-2 border-[#0b1a3d] rounded-lg font-bungee text-xs shadow-[2px_2px_0px_#0b1a3d] flex items-center justify-between cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
+          >
+            <span className="flex items-center gap-1.5">
+              <Trophy className="w-4 h-4 text-[#d9261c] fill-current" />
+              <span>LEADERBOARD RANK</span>
+            </span>
+            <span className="text-[10px] bg-[#0c389c] text-white px-1.5 py-0.5 rounded font-heading font-black">
+              BUKA 🏆
+            </span>
+          </button>
         </div>
       </div>
 

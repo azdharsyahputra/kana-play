@@ -2,9 +2,10 @@ export type KanaScript = 'hiragana' | 'katakana' | 'mixed';
 
 export type DrillDirection = 'kana_to_romaji' | 'romaji_to_kana'; // Normal vs Reverse
 
-export type AppTab = 'home' | 'brute-force' | 'free-drill' | 'word-drill' | 'writing-drill' | 'matrix' | 'reference' | 'uts-exam';
+export type AppTab = 'home' | 'brute-force' | 'free-drill' | 'word-drill' | 'writing-drill' | 'matrix' | 'reference' | 'uts-exam' | 'leaderboard';
 
 export * from './uts';
+export * from './leaderboard';
 
 export interface KanaItem {
   id: string; // e.g. "a", "ka", "shi", "kya"
