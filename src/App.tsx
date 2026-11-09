@@ -14,6 +14,8 @@ import { RetroFooter } from './components/RetroFooter';
 import { UtsExamTrainer } from './components/UtsExamTrainer';
 import { Leaderboard } from './components/Leaderboard';
 import { JikanTrainer } from './components/JikanTrainer';
+import { broadcastPlayerScore } from './utils/onlineLeaderboard';
+import { loadPlayerProfile } from './utils/leaderboard';
 
 export function App() {
   const [currentTab, setCurrentTab] = useState<AppTab>('home');
@@ -32,10 +34,11 @@ export function App() {
     window.scrollTo(0, 0);
   };
 
-  // Sync state if stats change
+  // Sync state if stats change & broadcast to online players
   const handleUpdateStats = (newStats: UserStats) => {
     setStats(newStats);
     saveUserStats(newStats);
+    broadcastPlayerScore(newStats, loadPlayerProfile());
   };
 
   const handleResetStats = () => {

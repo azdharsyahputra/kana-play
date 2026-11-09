@@ -226,8 +226,10 @@ export function loadPlayerProfile(): PlayerProfile {
     if (!raw) return DEFAULT_PROFILE;
     const parsed = JSON.parse(raw);
     return {
+      id: parsed.id,
       name: parsed.name || DEFAULT_PROFILE.name,
       avatar: parsed.avatar || DEFAULT_PROFILE.avatar,
+      tagline: parsed.tagline || 'Ayo taklukkan Hiragana & Katakana!',
       customTitle: parsed.customTitle,
     };
   } catch (e) {
@@ -339,7 +341,8 @@ export function resetCustomPlayers(): void {
 export function buildLeaderboard(
   stats: UserStats,
   profile: PlayerProfile,
-  sortBy: LeaderboardSortOption
+  sortBy: LeaderboardSortOption,
+  onlinePlayers: LeaderboardPlayer[] = []
 ): {
   players: LeaderboardPlayer[];
   userRank: number;
@@ -363,16 +366,39 @@ export function buildLeaderboard(
     bestStreak: stats.bestStreak || 0,
     level: stats.bruteForceLevel || 1,
     badge: stats.bestStreak >= 20 ? '🔥 Streak Monster' : stats.totalCorrect >= 100 ? '🎯 Master 100+' : '★ Kamu',
-    tagline: 'Terus tingkatkan skor dan taklukkan peringkat 1!',
+    tagline: profile.tagline || 'Terus tingkatkan skor dan taklukkan peringkat 1!',
+    isOnline: true,
   };
 
   const customPlayers = loadCustomPlayers();
 
-  const allPlayers: LeaderboardPlayer[] = [
-    userPlayer,
-    ...customPlayers,
-    ...DEFAULT_RIVALS.map(r => ({ ...r, isUser: false })),
-  ];
+  // Combine while avoiding duplicate IDs and prioritizing Live Online Players
+  const seenIds = new Set<string>(['active_user']);
+  const allPlayers: LeaderboardPlayer[] = [userPlayer];
+
+  // 1. Live Online Players (from other devices/tabs)
+  for (const op of onlinePlayers) {
+    if (!seenIds.has(op.id) && !op.isUser) {
+      seenIds.add(op.id);
+      allPlayers.push(op);
+    }
+  }
+
+  // 2. Custom Locally Added Friends
+  for (const cp of customPlayers) {
+    if (!seenIds.has(cp.id)) {
+      seenIds.add(cp.id);
+      allPlayers.push({ ...cp, isCustomFriend: true });
+    }
+  }
+
+  // 3. Default Rivals (Classmates)
+  for (const r of DEFAULT_RIVALS) {
+    if (!seenIds.has(r.id)) {
+      seenIds.add(r.id);
+      allPlayers.push({ ...r, isUser: false });
+    }
+  }
 
   // Sorting logic
   allPlayers.sort((a, b) => {
