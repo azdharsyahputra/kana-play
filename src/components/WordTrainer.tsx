@@ -20,7 +20,8 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
   onSelectDirection,
 }) => {
   const [selectedScriptFilter, setSelectedScriptFilter] = useState<'all' | 'hiragana' | 'katakana'>('hiragana');
-  const [selectedCategory, setSelectedCategory] = useState<string>('uts_target'); // Default to UTS target for instant review!
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['uts_target']); // Default to UTS target for instant review!
+  const [multiSelect, setMultiSelect] = useState(false);
   
   const [currentWord, setCurrentWord] = useState<WordItem | null>(null);
   const [inputVal, setInputVal] = useState('');
@@ -30,6 +31,9 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const lastWordIdRef = useRef<string | null>(null);
+  // How many times each word has been shown in the current pool.
+  // Picking only from the least-shown words means no word repeats until every word has appeared.
+  const seenCountRef = useRef<Map<string, number>>(new Map());
 
   const utsCategories = [
     { id: 'uts_target', label: '⭐ Semua Target UTS (P6)' },
@@ -65,44 +69,37 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
     { id: 'sentences', label: 'Kalimat & Frasa' },
   ];
 
-  const filteredWords = JAPANESE_WORDS.filter(w => {
-    const matchScript =
-      selectedScriptFilter === 'all' ||
-      w.script === selectedScriptFilter;
+  const matchesCategory = (w: WordItem, catId: string) => {
+    if (catId === 'all') return true;
+    if (catId === 'uts_target') return Boolean(w.isUts);
+    return w.category === catId || Boolean(w.subCategories && w.subCategories.includes(catId));
+  };
 
-    let matchCat = false;
-    if (selectedCategory === 'all') {
-      matchCat = true;
-    } else if (selectedCategory === 'uts_target') {
-      matchCat = Boolean(w.isUts);
+  const matchesScript = (w: WordItem) =>
+    selectedScriptFilter === 'all' || w.script === selectedScriptFilter;
+
+  const filteredWords = JAPANESE_WORDS.filter(
+    w => matchesScript(w) && selectedCategories.some(cat => matchesCategory(w, cat))
+  );
+
+  const getCategoryCount = (catId: string) =>
+    JAPANESE_WORDS.filter(w => matchesScript(w) && matchesCategory(w, catId)).length;
+
+  const selectCategory = (catId: string) => {
+    playKeyClickSound();
+    const isAdding = !selectedCategories.includes(catId);
+    let next: string[];
+    if (!multiSelect || catId === 'all') {
+      next = [catId];
+    } else if (isAdding) {
+      next = [...selectedCategories.filter(c => c !== 'all'), catId];
     } else {
-      matchCat =
-        w.category === selectedCategory ||
-        Boolean(w.subCategories && w.subCategories.includes(selectedCategory));
+      next = selectedCategories.filter(c => c !== catId);
+      if (next.length === 0) return; // keep at least one theme selected
     }
-
-    return matchScript && matchCat;
-  });
-
-  const getCategoryCount = (catId: string) => {
-    return JAPANESE_WORDS.filter(w => {
-      const matchScript =
-        selectedScriptFilter === 'all' ||
-        w.script === selectedScriptFilter;
-
-      let matchCat = false;
-      if (catId === 'all') {
-        matchCat = true;
-      } else if (catId === 'uts_target') {
-        matchCat = Boolean(w.isUts);
-      } else {
-        matchCat =
-          w.category === catId ||
-          Boolean(w.subCategories && w.subCategories.includes(catId));
-      }
-
-      return matchScript && matchCat;
-    }).length;
+    setSelectedCategories(next);
+    // Nama negara mostly katakana → open all scripts so the list isn't nearly empty
+    if (catId === 'countries' && isAdding) setSelectedScriptFilter('all');
   };
 
   const pickNextWord = (prevId?: string) => {
@@ -117,8 +114,14 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
       }
     }
 
+    // Only pick among the least-shown words in this pool
+    const seen = seenCountRef.current;
+    const minSeen = Math.min(...pool.map(w => seen.get(w.id) ?? 0));
+    pool = pool.filter(w => (seen.get(w.id) ?? 0) === minSeen);
+
     const randomWord = pool[Math.floor(Math.random() * pool.length)];
     lastWordIdRef.current = randomWord ? randomWord.id : null;
+    if (randomWord) seen.set(randomWord.id, (seen.get(randomWord.id) ?? 0) + 1);
 
     setCurrentWord(randomWord || null);
     setInputVal('');
@@ -131,8 +134,9 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
   };
 
   useEffect(() => {
+    seenCountRef.current = new Map();
     pickNextWord();
-  }, [selectedCategory, selectedScriptFilter]);
+  }, [selectedCategories.join(','), selectedScriptFilter]);
 
   const handleSubmit = (submittedStr: string) => {
     if (!currentWord) return;
@@ -338,6 +342,31 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
             </div>
           </div>
 
+          {/* MULTI-SELECT TOGGLE */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-[11px] font-bold text-gray-500">
+              {multiSelect
+                ? `Mode campur tema: ${selectedCategories.length} tema dipilih (klik lagi untuk melepas)`
+                : 'Klik satu tema untuk latihan, atau aktifkan Campur Tema.'}
+            </span>
+            <button
+              onClick={() => {
+                playKeyClickSound();
+                if (multiSelect && selectedCategories.length > 1) {
+                  setSelectedCategories([selectedCategories[0]]);
+                }
+                setMultiSelect(!multiSelect);
+              }}
+              className={`px-3 py-1 text-xs font-heading font-black rounded-lg border-2 transition-all ${
+                multiSelect
+                  ? 'bg-[#10b981] border-[#0b1a3d] text-white shadow-[2px_2px_0px_#0b1a3d]'
+                  : 'bg-white border-[#0b1a3d] text-[#0b1a3d] hover:bg-[#f6eedf]'
+              }`}
+            >
+              {multiSelect ? '✅ Campur Tema: ON' : '🔀 Campur Tema: OFF'}
+            </button>
+          </div>
+
           {/* SECTION 1: UTS & PERTEMUAN 6 CATEGORIES (HIGHLIGHTED) */}
           <div className="p-2.5 sm:p-3 bg-[#fff1f2] border-2 border-[#d9261c]/30 rounded-xl">
             <div className="flex items-center justify-between mb-2">
@@ -351,14 +380,11 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
             <div className="flex flex-wrap gap-1.5 items-center">
               {utsCategories.map((cat) => {
                 const count = getCategoryCount(cat.id);
-                const isSelected = selectedCategory === cat.id;
+                const isSelected = selectedCategories.includes(cat.id);
                 return (
                   <button
                     key={cat.id}
-                    onClick={() => {
-                      playKeyClickSound();
-                      setSelectedCategory(cat.id);
-                    }}
+                    onClick={() => selectCategory(cat.id)}
                     className={`px-2.5 py-1 text-xs font-heading font-black rounded-lg border transition-all flex items-center gap-1.5 ${
                       isSelected
                         ? 'bg-[#d9261c] border-[#73130d] text-white shadow-[2px_2px_0px_#0b1a3d]'
@@ -392,14 +418,11 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
             <div className="flex flex-wrap gap-1.5 items-center">
               {timeCategories.map((cat) => {
                 const count = getCategoryCount(cat.id);
-                const isSelected = selectedCategory === cat.id;
+                const isSelected = selectedCategories.includes(cat.id);
                 return (
                   <button
                     key={cat.id}
-                    onClick={() => {
-                      playKeyClickSound();
-                      setSelectedCategory(cat.id);
-                    }}
+                    onClick={() => selectCategory(cat.id)}
                     className={`px-2.5 py-1 text-xs font-heading font-black rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
                       isSelected
                         ? 'bg-[#0c389c] border-[#071e54] text-white shadow-[2px_2px_0px_#0b1a3d]'
@@ -427,16 +450,11 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
             </span>
             {generalCategories.map((cat) => {
               const count = getCategoryCount(cat.id);
-              const isSelected = selectedCategory === cat.id;
+              const isSelected = selectedCategories.includes(cat.id);
               return (
                 <button
                   key={cat.id}
-                  onClick={() => {
-                    playKeyClickSound();
-                    setSelectedCategory(cat.id);
-                    // Nama negara mostly katakana → open all scripts so the list isn't nearly empty
-                    if (cat.id === 'countries') setSelectedScriptFilter('all');
-                  }}
+                  onClick={() => selectCategory(cat.id)}
                   className={`px-2 py-0.5 text-xs font-heading font-bold rounded-lg border transition-all flex items-center gap-1 ${
                     isSelected
                       ? 'bg-[#ffd200] border-[#0b1a3d] text-[#0b1a3d] font-black shadow-[2px_2px_0px_#0b1a3d]'
