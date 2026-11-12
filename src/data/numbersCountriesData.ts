@@ -185,6 +185,7 @@ const COMPOSITE_WORDS: WordItem[] = COMPOSITE_NUMBERS.map(n => {
     romaji,
     altRomaji: [...alts],
     english: fmt(n, ','),
+    display: fmt(n, '.'),
     indonesian: `Angka ${fmt(n, '.')}`,
     category: 'numbers',
     subCategories: ['numbers', ...(n >= 100 ? ['numbers_big'] : [])],
@@ -208,6 +209,7 @@ const BASIC_NUMBER_WORDS: WordItem[] = NUMBER_ROWS.map(
     script: kana === 'ゼロ' ? 'katakana' : 'hiragana',
     difficulty,
     notes,
+    display: fmt(Number(english.match(/\(([\d.]+)\)/)![1].replace(/\./g, '')), '.'),
   })
 );
 

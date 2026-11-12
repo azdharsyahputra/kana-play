@@ -515,7 +515,11 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
             {direction === 'kana_to_romaji' ? (
               // NORMAL: Show Kana Word
               <div className="flex flex-col items-center">
-                {currentWord.kanji && (
+                {currentWord.display ? (
+                  <span className="text-xs font-black uppercase text-[#0c389c] tracking-widest mb-1">
+                    BACA ANGKA INI DALAM BAHASA JEPANG:
+                  </span>
+                ) : currentWord.kanji && (
                   <span className="text-xl sm:text-2xl font-bold text-gray-400 font-kana mb-1">
                     [{currentWord.kanji}]
                   </span>
@@ -529,11 +533,17 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
                       : ''
                   }`}
                 >
-                  {currentWord.kana}
+                  {currentWord.display ? (
+                    <span className="font-bungee">{currentWord.display}</span>
+                  ) : (
+                    currentWord.kana
+                  )}
                 </div>
-                <div className="mt-2.5 text-sm font-extrabold text-[#d9261c] bg-[#ffe4e6] px-3.5 py-1 rounded-full border border-[#d9261c]/30">
-                  Arti: {currentWord.indonesian} / {currentWord.english}
-                </div>
+                {!currentWord.display && (
+                  <div className="mt-2.5 text-sm font-extrabold text-[#d9261c] bg-[#ffe4e6] px-3.5 py-1 rounded-full border border-[#d9261c]/30">
+                    Arti: {currentWord.indonesian} / {currentWord.english}
+                  </div>
+                )}
               </div>
             ) : (
               // REVERSE: Show Romaji + Meaning
@@ -559,7 +569,7 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
             )}
 
             {/* Visual Trap / Helpful Notes for UTS Preparation */}
-            {currentWord.notes && (
+            {currentWord.notes && !(direction === 'kana_to_romaji' && currentWord.display) && (
               <div className="mt-3 text-xs font-bold text-[#0b1a3d] bg-[#f6eedf] px-3.5 py-1.5 rounded-xl border border-[#0b1a3d]/20 max-w-lg shadow-sm flex items-start gap-1.5 text-left">
                 <span className="shrink-0 text-sm">💡</span>
                 <span>{currentWord.notes}</span>
@@ -623,6 +633,9 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
               <AlertCircle className="w-5 h-5 shrink-0" />
               <span className="text-xs font-bold">
                 Jawaban yang benar: <strong>{lastAnswer.word.kana}</strong> ({lastAnswer.word.romaji.toUpperCase()} - {lastAnswer.word.indonesian})
+                {lastAnswer.word.display && lastAnswer.word.notes && (
+                  <span className="block mt-1 font-normal">💡 {lastAnswer.word.notes}</span>
+                )}
               </span>
             </div>
           )}

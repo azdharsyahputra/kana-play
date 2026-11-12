@@ -57,6 +57,8 @@ export interface WordItem {
   difficulty: 1 | 2 | 3;
   isUts?: boolean;
   notes?: string;
+  /** Optional prompt override for normal mode (e.g. digits "3.456" for numbers). */
+  display?: string;
 }
 
 export interface KanaMastery {
