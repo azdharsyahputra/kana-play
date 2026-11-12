@@ -53,6 +53,9 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
   const generalCategories = [
     { id: 'all', label: 'Semua Kosakata (Full Bank)' },
     { id: 'basics', label: 'Dasar & Salam' },
+    { id: 'numbers', label: '🔢 Semua Angka (Ichi, Ni, San...)' },
+    { id: 'numbers_big', label: '💰 Angka Besar (Ratus, Ribu, Juta)' },
+    { id: 'countries', label: '🌏 Nama Negara' },
     { id: 'daily', label: 'Benda Harian' },
     { id: 'food', label: 'Makanan' },
     { id: 'animals', label: 'Hewan' },
@@ -431,6 +434,8 @@ export const WordTrainer: React.FC<WordTrainerProps> = ({
                   onClick={() => {
                     playKeyClickSound();
                     setSelectedCategory(cat.id);
+                    // Nama negara mostly katakana → open all scripts so the list isn't nearly empty
+                    if (cat.id === 'countries') setSelectedScriptFilter('all');
                   }}
                   className={`px-2 py-0.5 text-xs font-heading font-bold rounded-lg border transition-all flex items-center gap-1 ${
                     isSelected

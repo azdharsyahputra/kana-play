@@ -2067,7 +2067,7 @@ export const UTS_WORDS: WordItem[] = [
     english: 'Japan',
     indonesian: 'Negara Jepang',
     category: 'uts_reading',
-    subCategories: ['uts_target', 'uts_reading', 'basics'],
+    subCategories: ['uts_target', 'uts_reading', 'basics', 'countries'],
     script: 'hiragana',
     difficulty: 1,
     isUts: true,
